@@ -31,8 +31,10 @@ export default function LoginScreen({ navigation }) {
     setLoading(true);
     try {
       const res = await login(email.trim().toLowerCase(), password);
-      const { token, user, ...authData } = res.data;
-      await signIn(token, user || authData);
+      // Response: { token, role, userCode }  OR  { token, user: {...} }
+      const { token, user, role, userCode } = res.data;
+      // Pass role + userCode so AuthContext stores the correct role without hydration
+      await signIn(token, user || { role, userCode });
     } catch (err) {
       Alert.alert('Login Failed', err.message || 'Invalid credentials');
     } finally {

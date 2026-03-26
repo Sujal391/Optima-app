@@ -118,4 +118,16 @@ export const updateProfile = (data) => api.put('/user/profile', data);
 export const changePassword = (currentPassword, newPassword) =>
   api.post('/user/profile/change-password', { currentPassword, newPassword });
 
+// ─── Marketing ───────────────────────────────────────────
+export const getMyActivities = () => api.get('/marketing/activities');
+
+export const getActivityById = (id) => api.get(`/marketing/activities/${id}`);
+
+export const addActivity = (formData) =>
+  api.post('/marketing/activities', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    transformRequest: (data) => data,
+    timeout: 30000,
+  });
+
 export default api;

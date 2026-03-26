@@ -41,7 +41,9 @@ export const AuthProvider = ({ children }) => {
         const parsedUser = JSON.parse(storedUser);
         setToken(storedToken);
         setUser(parsedUser);
-        if (!parsedUser?.name || !parsedUser?.phoneNumber || !parsedUser?.customerDetails) {
+        // Marketing users have no /user/profile endpoint — skip hydration
+        const isMarketing = parsedUser?.role === 'marketing';
+        if (!isMarketing && (!parsedUser?.name || !parsedUser?.phoneNumber || !parsedUser?.customerDetails)) {
           await hydrateUserProfile(storedToken, parsedUser);
         }
       }
@@ -73,7 +75,10 @@ export const AuthProvider = ({ children }) => {
     await AsyncStorage.setItem('user', JSON.stringify(normalizedUser));
     setToken(tokenValue);
     setUser(normalizedUser);
-    await hydrateUserProfile(tokenValue, normalizedUser);
+    // Marketing users have no /user/profile endpoint — skip hydration
+    if (normalizedUser.role !== 'marketing') {
+      await hydrateUserProfile(tokenValue, normalizedUser);
+    }
   };
 
   const signOut = async () => {

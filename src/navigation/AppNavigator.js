@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { COLORS, SPACING, RADIUS } from '../theme';
+import { COLORS, SPACING, RADIUS, TYPOGRAPHY } from '../theme';
 import { BrandMark, Icon } from '../components/UI';
 
 import LoginScreen from '../screens/LoginScreen';
@@ -20,6 +20,9 @@ import PaymentScreen from '../screens/PaymentScreen';
 import OrderSuccessScreen from '../screens/OrderSuccessScreen';
 import OrdersScreen from '../screens/OrdersScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import MarketingActivitiesScreen from '../screens/MarketingActivitiesScreen';
+import AddActivityScreen from '../screens/AddActivityScreen';
+import ActivityDetailScreen from '../screens/ActivityDetailScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -222,8 +225,79 @@ function AppStack() {
   );
 }
 
+// ─── Marketing ────────────────────────────────────────────────────────────────
+
+function MarketingProfileScreen({ navigation }) {
+  const { user, signOut } = useAuth();
+  return (
+    <View style={styles.mktProfile}>
+      <View style={styles.mktProfileHeader}>
+        <View style={styles.mktAvatar}>
+          <Icon name="user" size={32} color="#fff" />
+        </View>
+        <Text style={styles.mktProfileName}>{user?.name || 'Marketing User'}</Text>
+        <Text style={styles.mktProfileEmail}>{user?.email || ''}</Text>
+        <View style={styles.mktRoleBadge}>
+          <Text style={styles.mktRoleBadgeText}>Marketing</Text>
+        </View>
+      </View>
+      <TouchableOpacity style={styles.mktSignOut} onPress={signOut}>
+        <Icon name="log-out" size={18} color={COLORS.error} />
+        <Text style={styles.mktSignOutText}>Sign Out</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+function MarketingTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: styles.tabBar,
+        tabBarActiveTintColor: COLORS.burgundy,
+        tabBarInactiveTintColor: COLORS.textMuted,
+        tabBarShowLabel: true,
+        tabBarLabelPosition: 'below-icon',
+        tabBarItemStyle: styles.tabItem,
+      }}
+    >
+      <Tab.Screen
+        name="Activities"
+        component={MarketingActivitiesScreen}
+        options={{
+          tabBarIcon: ({ focused }) => <TabIcon name="clipboard" focused={focused} />,
+          tabBarLabel: ({ focused }) => (
+            <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>Activities</Text>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="MarketingProfile"
+        component={MarketingProfileScreen}
+        options={{
+          tabBarIcon: ({ focused }) => <TabIcon name="user" focused={focused} />,
+          tabBarLabel: ({ focused }) => (
+            <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>Profile</Text>
+          ),
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+function MarketingStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="MarketingTabs" component={MarketingTabs} />
+      <Stack.Screen name="AddActivity" component={AddActivityScreen} />
+      <Stack.Screen name="ActivityDetail" component={ActivityDetailScreen} />
+    </Stack.Navigator>
+  );
+}
+
 export default function AppNavigator() {
-  const { token, loading } = useAuth();
+  const { token, user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -234,9 +308,13 @@ export default function AppNavigator() {
     );
   }
 
+  const isMarketing = user?.role === 'marketing';
+
   return (
     <NavigationContainer>
-      {token ? <AppStack /> : <AuthStack />}
+      {token
+        ? (isMarketing ? <MarketingStack /> : <AppStack />)
+        : <AuthStack />}
     </NavigationContainer>
   );
 }
@@ -302,6 +380,68 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: '#fff',
     fontFamily: 'DMSans_700Bold',
+  },
+  // Marketing profile screen
+  mktProfile: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  mktProfileHeader: {
+    backgroundColor: COLORS.burgundyDark,
+    paddingTop: 64,
+    paddingBottom: SPACING.xxxl,
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  mktAvatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: COLORS.burgundy,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.sm,
+  },
+  mktProfileName: {
+    fontSize: TYPOGRAPHY.xl,
+    fontFamily: 'DMSans_700Bold',
+    color: '#fff',
+  },
+  mktProfileEmail: {
+    fontSize: TYPOGRAPHY.sm,
+    fontFamily: 'DMSans_400Regular',
+    color: 'rgba(255,255,255,0.7)',
+  },
+  mktRoleBadge: {
+    marginTop: SPACING.xs,
+    backgroundColor: COLORS.burgundy,
+    borderRadius: RADIUS.full,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 4,
+  },
+  mktRoleBadgeText: {
+    fontSize: TYPOGRAPHY.xs,
+    fontFamily: 'DMSans_700Bold',
+    color: '#fff',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  mktSignOut: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    margin: SPACING.xl,
+    marginTop: SPACING.xxxl,
+    padding: SPACING.lg,
+    backgroundColor: COLORS.errorLight,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.error + '33',
+  },
+  mktSignOutText: {
+    fontSize: TYPOGRAPHY.base,
+    fontFamily: 'DMSans_700Bold',
+    color: COLORS.error,
   },
 });
 
