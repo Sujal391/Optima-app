@@ -3,16 +3,16 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl,
 } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
-import { Badge, LoadingSpinner, EmptyState, Divider } from '../components/UI';
+import { LoadingSpinner, EmptyState, Divider, Icon } from '../components/UI';
 import { getOrderHistory } from '../api';
 
 const STATUS_CONFIG = {
-  pending:    { color: COLORS.warningLight, text: COLORS.warning, label: 'Pending' },
-  confirmed:  { color: COLORS.successLight, text: COLORS.success, label: 'Confirmed' },
-  processing: { color: '#E8F0FE',           text: '#1A73E8',       label: 'Processing' },
-  shipped:    { color: '#E3F2FD',           text: '#0277BD',       label: 'Shipped' },
-  delivered:  { color: COLORS.successLight, text: COLORS.success,  label: 'Delivered' },
-  cancelled:  { color: COLORS.errorLight,   text: COLORS.error,    label: 'Cancelled' },
+  pending: { color: COLORS.warningLight, text: COLORS.warning, label: 'Pending' },
+  confirmed: { color: COLORS.successLight, text: COLORS.success, label: 'Confirmed' },
+  processing: { color: '#E8F0FE', text: '#1A73E8', label: 'Processing' },
+  shipped: { color: '#E3F2FD', text: '#0277BD', label: 'Shipped' },
+  delivered: { color: COLORS.successLight, text: COLORS.success, label: 'Delivered' },
+  cancelled: { color: COLORS.errorLight, text: COLORS.error, label: 'Cancelled' },
 };
 
 export default function OrdersScreen({ navigation }) {
@@ -40,7 +40,6 @@ export default function OrdersScreen({ navigation }) {
   };
 
   const renderOrder = ({ item }) => {
-    // API uses `orderStatus`; fall back to `status` for compatibility
     const status = (item.orderStatus || item.status)?.toLowerCase() || 'pending';
     const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
     const date = item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-IN', {
@@ -53,7 +52,6 @@ export default function OrdersScreen({ navigation }) {
         onPress={() => navigation.navigate('OrderDetail', { order: item })}
         activeOpacity={0.9}
       >
-        {/* Header row */}
         <View style={styles.orderHeader}>
           <View>
             <Text style={styles.orderId}>#{(item._id || item.id)?.slice(-8)?.toUpperCase()}</Text>
@@ -67,7 +65,6 @@ export default function OrdersScreen({ navigation }) {
 
         <Divider style={{ marginVertical: SPACING.sm }} />
 
-        {/* Products preview */}
         {(item.products || []).slice(0, 2).map((p, i) => {
           const product = p.product || p;
           return (
@@ -78,7 +75,7 @@ export default function OrdersScreen({ navigation }) {
                 {product.category ? ` (${product.category})` : ''}
               </Text>
               <Text style={styles.productQty}>
-                {p.boxes ? `${p.boxes} box${p.boxes > 1 ? 'es' : ''}` : `×${p.quantity || 1}`}
+                {p.boxes ? `${p.boxes} box${p.boxes > 1 ? 'es' : ''}` : `x${p.quantity || 1}`}
               </Text>
             </View>
           );
@@ -89,14 +86,13 @@ export default function OrdersScreen({ navigation }) {
           </Text>
         )}
 
-        {/* Footer */}
         <View style={styles.orderFooter}>
           <View>
             <Text style={styles.totalLabel}>Total Paid</Text>
-            <Text style={styles.totalAmount}>₹{item.totalAmount?.toLocaleString()}</Text>
+            <Text style={styles.totalAmount}>Rs.{item.totalAmount?.toLocaleString()}</Text>
           </View>
           <View style={styles.detailsBtn}>
-            <Text style={styles.detailsBtnText}>View Details →</Text>
+            <Text style={styles.detailsBtnText}>View Details</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -114,7 +110,7 @@ export default function OrdersScreen({ navigation }) {
 
       {orders.length === 0 ? (
         <EmptyState
-          emoji="📦"
+          icon={<Icon name="archive" size={52} color={COLORS.burgundy} style={{ marginBottom: SPACING.lg }} />}
           title="No orders yet"
           subtitle="Your order history will appear here"
           action="Start Shopping"
@@ -128,13 +124,13 @@ export default function OrdersScreen({ navigation }) {
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => <View style={{ height: SPACING.md }} />}
-          refreshControl={
+          refreshControl={(
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => { setRefreshing(true); fetchOrders(); }}
               tintColor={COLORS.burgundy}
             />
-          }
+          )}
         />
       )}
     </View>

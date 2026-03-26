@@ -4,7 +4,7 @@ import {
   TouchableOpacity, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../theme';
-import { Button, Input } from '../components/UI';
+import { Button, Input, BrandMark, Icon } from '../components/UI';
 import { useAuth } from '../context/AuthContext';
 import { login } from '../api';
 
@@ -50,16 +50,14 @@ export default function LoginScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header decoration */}
         <View style={styles.headerBg}>
           <View style={styles.headerCircle1} />
           <View style={styles.headerCircle2} />
         </View>
 
         <View style={styles.logoSection}>
-          <Text style={styles.logoEmoji}>💧</Text>
-          <Text style={styles.brandName}>Rewa Water</Text>
-          <Text style={styles.brandTagline}>Pure Water Delivery</Text>
+          <BrandMark size={76} style={styles.brandMark} />
+          <Text style={styles.brandName}>Optima Polyplast</Text>
         </View>
 
         <View style={styles.formCard}>
@@ -84,16 +82,12 @@ export default function LoginScreen({ navigation }) {
             onChangeText={setPassword}
             secureTextEntry={!showPass}
             error={errors.password}
-            rightIcon={
+            rightIcon={(
               <TouchableOpacity onPress={() => setShowPass(!showPass)}>
-                <Text style={styles.showHide}>{showPass ? 'Hide' : 'Show'}</Text>
+                <Icon name={showPass ? 'eye-off' : 'eye'} size={18} color={COLORS.textMuted} />
               </TouchableOpacity>
-            }
+            )}
           />
-
-          <TouchableOpacity style={styles.forgotBtn}>
-            <Text style={styles.forgotText}>Forgot password?</Text>
-          </TouchableOpacity>
 
           <Button
             title="Sign In"
@@ -114,8 +108,7 @@ export default function LoginScreen({ navigation }) {
             onPress={() => navigation.navigate('Register')}
           >
             <Text style={styles.registerText}>
-              Don't have an account?{' '}
-              <Text style={styles.registerLink}>Create one</Text>
+              Don't have an account? <Text style={styles.registerLink}>Create one</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -157,25 +150,20 @@ const styles = StyleSheet.create({
   },
   logoSection: {
     position: 'absolute',
-    top: 70,
+    top: 58,
     alignSelf: 'center',
     alignItems: 'center',
   },
-  logoEmoji: { fontSize: 44 },
+  brandMark: {
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(255,255,255,0.22)',
+  },
   brandName: {
     fontSize: TYPOGRAPHY.xxxl,
     fontFamily: 'DMSans_700Bold',
     color: COLORS.textInverse,
-    letterSpacing: 2,
-    marginTop: 4,
-  },
-  brandTagline: {
-    fontSize: TYPOGRAPHY.sm,
-    fontFamily: 'DMSans_400Regular',
-    color: COLORS.goldLight,
-    letterSpacing: 3,
-    textTransform: 'uppercase',
-    marginTop: 4,
+    letterSpacing: 0.6,
+    marginTop: 14,
   },
   formCard: {
     marginTop: -30,
@@ -199,20 +187,6 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_400Regular',
     color: COLORS.textMuted,
     marginTop: 4,
-  },
-  showHide: {
-    fontSize: TYPOGRAPHY.sm,
-    fontFamily: 'DMSans_500Medium',
-    color: COLORS.burgundy,
-  },
-  forgotBtn: {
-    alignSelf: 'flex-end',
-    marginTop: 4,
-  },
-  forgotText: {
-    fontSize: TYPOGRAPHY.sm,
-    fontFamily: 'DMSans_500Medium',
-    color: COLORS.burgundy,
   },
   dividerRow: {
     flexDirection: 'row',

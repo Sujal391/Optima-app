@@ -4,7 +4,7 @@ import {
   Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
-import { Button, Input, Divider } from '../components/UI';
+import { Button, Input, Icon } from '../components/UI';
 import { getProfile, updateProfile, changePassword } from '../api';
 import { useAuth } from '../context/AuthContext';
 
@@ -24,25 +24,22 @@ export default function ProfileScreen({ navigation }) {
   const fetchProfile = async () => {
     try {
       const res = await getProfile();
-      // API: { user: { name, email, phoneNumber, createdAt,
-      //                customerDetails: { firmName, photo,
-      //                  address: { address, city, state, pinCode } } } }
       const data = res.data?.user || res.data;
-      const cd   = data?.customerDetails || {};
-      const addr = cd.address || {};           // address is an object, not a string
+      const cd = data?.customerDetails || {};
+      const addr = cd.address || {};
 
       setProfile({ ...data, firmName: cd.firmName || '', addressObj: addr });
       setForm({
-        name:        data.name        || '',
+        name: data.name || '',
         phoneNumber: data.phoneNumber || '',
-        firmName:    cd.firmName      || '',
-        addressLine: addr.address     || '',
-        city:        addr.city        || '',
-        state:       addr.state       || '',
-        pinCode:     addr.pinCode     || '',
+        firmName: cd.firmName || '',
+        addressLine: addr.address || '',
+        city: addr.city || '',
+        state: addr.state || '',
+        pinCode: addr.pinCode || '',
       });
     } catch (e) {
-      console.log('Profile error:', e);
+      console.log('Profile error:', e?.message || String(e));
     }
   };
 
@@ -56,16 +53,15 @@ export default function ProfileScreen({ navigation }) {
     }
     setLoading(true);
     try {
-      // Send nested structure matching what the API expects
       const payload = {
-        name:        form.name,
+        name: form.name,
         phoneNumber: form.phoneNumber,
         customerDetails: {
           firmName: form.firmName,
           address: {
             address: form.addressLine,
-            city:    form.city,
-            state:   form.state,
+            city: form.city,
+            state: form.state,
             pinCode: form.pinCode,
           },
         },
@@ -74,10 +70,15 @@ export default function ProfileScreen({ navigation }) {
       updateUser({ ...user, name: form.name, phoneNumber: form.phoneNumber });
       setProfile((p) => ({
         ...p,
-        name:        form.name,
+        name: form.name,
         phoneNumber: form.phoneNumber,
-        firmName:    form.firmName,
-        addressObj:  { address: form.addressLine, city: form.city, state: form.state, pinCode: form.pinCode },
+        firmName: form.firmName,
+        addressObj: {
+          address: form.addressLine,
+          city: form.city,
+          state: form.state,
+          pinCode: form.pinCode,
+        },
       }));
       setEditing(false);
       Alert.alert('Saved!', 'Profile updated successfully.');
@@ -129,7 +130,6 @@ export default function ProfileScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACING.xxxl }}>
-        {/* Profile Header */}
         <View style={styles.headerBg}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
@@ -140,43 +140,49 @@ export default function ProfileScreen({ navigation }) {
           </View>
           <Text style={styles.profileName}>{displayProfile?.name || 'My Profile'}</Text>
           <Text style={styles.profileEmail}>{displayProfile?.email}</Text>
+          {!!displayProfile?.userCode && (
+            <View style={styles.userCodeBadge}>
+              <Text style={styles.userCodeText}>{displayProfile.userCode}</Text>
+            </View>
+          )}
           {displayProfile?.firmName && (
             <View style={styles.firmBadge}>
-              <Text style={styles.firmText}>🏢 {displayProfile.firmName}</Text>
+              <View style={styles.firmBadgeInner}>
+                <Icon name="briefcase" size={12} color="#fff" />
+                <Text style={styles.firmText}>{displayProfile.firmName}</Text>
+              </View>
             </View>
           )}
         </View>
 
-        {/* Quick Stats */}
         <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statIcon}>📦</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Orders')}>
-              <Text style={styles.statLabel}>My Orders</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate('Orders')} activeOpacity={0.8}>
+            <View style={styles.statIconWrap}>
+              <Icon name="archive" size={18} color={COLORS.burgundy} />
+            </View>
+            <Text style={styles.statLabel}>My Orders</Text>
+          </TouchableOpacity>
           <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statIcon}>🛒</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
-              <Text style={styles.statLabel}>My Cart</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate('Cart')} activeOpacity={0.8}>
+            <View style={styles.statIconWrap}>
+              <Icon name="shopping-cart" size={18} color={COLORS.burgundy} />
+            </View>
+            <Text style={styles.statLabel}>My Cart</Text>
+          </TouchableOpacity>
           <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Text style={styles.statIcon}>🏷️</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Products', { showOffers: true })}>
-              <Text style={styles.statLabel}>Offers</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate('Products')} activeOpacity={0.8}>
+            <View style={styles.statIconWrap}>
+              <Icon name="package" size={18} color={COLORS.burgundy} />
+            </View>
+            <Text style={styles.statLabel}>Products</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Profile Info / Edit Form */}
         <View style={styles.section}>
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.sectionTitle}>Personal Info</Text>
             <TouchableOpacity onPress={() => setEditing(!editing)} style={styles.editBtn}>
-              <Text style={styles.editBtnText}>{editing ? 'Cancel' : '✏️ Edit'}</Text>
+              <Text style={styles.editBtnText}>{editing ? 'Cancel' : 'Edit'}</Text>
             </TouchableOpacity>
           </View>
 
@@ -204,18 +210,17 @@ export default function ProfileScreen({ navigation }) {
                 const addr = displayProfile?.addressObj || {};
                 const addrStr = [addr.address, addr.city, addr.state, addr.pinCode]
                   .filter(Boolean).join(', ');
-                return [
-                  { label: 'Email',   value: displayProfile?.email },
-                  { label: 'Phone',   value: displayProfile?.phoneNumber },
-                  { label: 'Firm',    value: displayProfile?.firmName },
+                const rows = [
+                  { label: 'User Code', value: displayProfile?.userCode },
+                  { label: 'Email', value: displayProfile?.email },
+                  { label: 'Phone', value: displayProfile?.phoneNumber },
+                  { label: 'Firm', value: displayProfile?.firmName },
                   { label: 'Address', value: addrStr || null },
-                ].filter((item) => item.value).map(({ label, value }) => (
-                  <View key={label}>
-                    <View style={styles.infoRow}>
-                      <Text style={styles.infoLabel}>{label}</Text>
-                      <Text style={styles.infoValue}>{value}</Text>
-                    </View>
-                    <Divider />
+                ].filter((item) => item.value);
+                return rows.map(({ label, value }) => (
+                  <View key={label} style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>{label}</Text>
+                    <Text style={styles.infoValue}>{value}</Text>
                   </View>
                 ));
               })()}
@@ -223,19 +228,25 @@ export default function ProfileScreen({ navigation }) {
           )}
         </View>
 
-        {/* Change Password */}
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.sectionHeaderRow}
             onPress={() => setChangingPass(!changingPass)}
           >
-            <Text style={styles.sectionTitle}>🔒 Change Password</Text>
-            <Text style={styles.chevron}>{changingPass ? '▲' : '▼'}</Text>
+            <View style={styles.sectionTitleRow}>
+              <Icon name="lock" size={16} color={COLORS.textPrimary} />
+              <Text style={styles.sectionTitle}>Change Password</Text>
+            </View>
+            <Icon
+              name={changingPass ? 'chevron-up' : 'chevron-down'}
+              size={16}
+              color={COLORS.textMuted}
+            />
           </TouchableOpacity>
 
           {changingPass && (
             <>
-              <Input label="Current Password" placeholder="••••••••"
+              <Input label="Current Password" placeholder="Enter current password"
                 value={passForm.current} onChangeText={setPass('current')} secureTextEntry />
               <Input label="New Password" placeholder="Min. 6 characters"
                 value={passForm.newPass} onChangeText={setPass('newPass')} secureTextEntry />
@@ -246,8 +257,7 @@ export default function ProfileScreen({ navigation }) {
           )}
         </View>
 
-        {/* Logout */}
-        <View style={{ paddingHorizontal: SPACING.lg }}>
+        <View style={{ paddingHorizontal: SPACING.lg, marginTop: SPACING.xl }}>
           <Button
             title="Sign Out"
             variant="danger"
@@ -303,10 +313,30 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: RADIUS.full,
   },
+  firmBadgeInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   firmText: {
     fontSize: TYPOGRAPHY.xs,
     fontFamily: 'DMSans_500Medium',
     color: '#fff',
+  },
+  userCodeBadge: {
+    marginTop: SPACING.sm,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 6,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  userCodeText: {
+    fontSize: TYPOGRAPHY.xs,
+    fontFamily: 'DMSans_700Bold',
+    color: '#fff',
+    letterSpacing: 0.4,
   },
   statsRow: {
     flexDirection: 'row',
@@ -325,7 +355,14 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingVertical: SPACING.sm,
   },
-  statIcon: { fontSize: 22 },
+  statIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: COLORS.burgundyMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   statLabel: {
     fontSize: TYPOGRAPHY.xs,
     fontFamily: 'DMSans_500Medium',
@@ -341,7 +378,9 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xl,
-    padding: SPACING.lg,
+    paddingTop: SPACING.lg,
+    paddingHorizontal: SPACING.lg,
+    paddingBottom: SPACING.xs,
     borderWidth: 1,
     borderColor: COLORS.border,
     marginTop: SPACING.lg,
@@ -351,6 +390,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: SPACING.md,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   sectionTitle: {
     fontSize: TYPOGRAPHY.md,
@@ -367,10 +411,6 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.sm,
     fontFamily: 'DMSans_500Medium',
     color: COLORS.burgundy,
-  },
-  chevron: {
-    fontSize: TYPOGRAPHY.sm,
-    color: COLORS.textMuted,
   },
   infoList: { gap: 0 },
   infoRow: {

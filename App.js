@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Font from 'expo-font';
 import {
-  useFonts,
   Playfair_700Bold,
   Playfair_700Bold_Italic,
 } from '@expo-google-fonts/playfair-display';
@@ -24,37 +24,63 @@ try {
 } catch (_) {}
 
 export default function App() {
-  const [fontsLoaded, fontError] = useFonts({
-    Playfair_700Bold,
-    Playfair_700Bold_Italic,
-    DMSans_400Regular,
-    DMSans_500Medium,
-    DMSans_700Bold,
-  });
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [fontError, setFontError] = useState(null);
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [fontsLoaded, fontError]);
+    let mounted = true;
 
-  if (!fontsLoaded && !fontError) {
-    return <View style={{ flex: 1, backgroundColor: COLORS.burgundy }} />;
+    const loadFonts = async () => {
+      try {
+        await Font.loadAsync({
+          Playfair_700Bold,
+          Playfair_700Bold_Italic,
+          DMSans_400Regular,
+          DMSans_500Medium,
+          DMSans_700Bold,
+        });
+        if (mounted) {
+          setFontsLoaded(true);
+        }
+      } catch (error) {
+        if (mounted) {
+          setFontError(error);
+          setFontsLoaded(true);
+        }
+      }
+    };
+
+    loadFonts();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const onLayoutRootView = useCallback(async () => {
+    if (!fontsLoaded) return;
+    await SplashScreen.hideAsync().catch(() => {});
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null;
   }
 
   if (fontError) {
-    console.warn('Font loading error:', fontError);
+    console.warn('Font loading error:', fontError?.message || String(fontError));
   }
 
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <CartProvider>
-          <ToastProvider>
-            <AppNavigator />
-          </ToastProvider>
-        </CartProvider>
-      </AuthProvider>
-    </ErrorBoundary>
+    <View style={{ flex: 1, backgroundColor: COLORS.background }} onLayout={onLayoutRootView}>
+      <ErrorBoundary>
+        <AuthProvider>
+          <CartProvider>
+            <ToastProvider>
+              <AppNavigator />
+            </ToastProvider>
+          </CartProvider>
+        </AuthProvider>
+      </ErrorBoundary>
+    </View>
   );
 }

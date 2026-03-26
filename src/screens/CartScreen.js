@@ -3,29 +3,46 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   Image, Alert, RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
-import { Button, Divider, EmptyState, LoadingSpinner } from '../components/UI';
+import { Button, Divider, EmptyState, LoadingSpinner, Icon, BrandMark } from '../components/UI';
 import { getCart, removeFromCart } from '../api';
 import { useCart } from '../context/CartContext';
 
+const MIN_TOTAL_BOXES = 200;
+
 export default function CartScreen({ navigation }) {
-  const { refreshCart } = useCart();
+  const { cartItems, refreshCart } = useCart();
   const [cartData, setCartData] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [removingId, setRemovingId] = useState(null);
+  const [summaryOpen, setSummaryOpen] = useState(false);
 
   useEffect(() => {
     fetchCart();
   }, []);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchCart();
+    }, [])
+  );
+
+  useEffect(() => {
+    if (!loading) {
+      setItems(cartItems || []);
+    }
+  }, [cartItems, loading]);
+
   const fetchCart = async () => {
     try {
       const res = await getCart();
-      const data = res.data || {};
-      setCartData(data);
-      setItems(data.items || data || []);
+      const cart = res.data?.cart || {};
+      const products = Array.isArray(cart.products) ? cart.products : [];
+      setCartData({ ...cart, products });
+      setItems(products);
     } catch (e) {
       console.log('Cart fetch error:', e);
     } finally {
@@ -43,7 +60,7 @@ export default function CartScreen({ navigation }) {
         onPress: async () => {
           setRemovingId(productId);
           try {
-            await removeFromCart(productId);
+            await removeFromCart({ product: productId });
             await fetchCart();
             refreshCart();
           } catch (e) {
@@ -56,20 +73,31 @@ export default function CartScreen({ navigation }) {
     ]);
   };
 
-  const subtotal = items.reduce((sum, item) => {
-    // API: price is per-box; boxes = number of boxes ordered
-    const price = item.product?.price || item.price || 0;
-    const boxes = item.boxes || item.quantity || 1;
-    return sum + price * boxes;
-  }, 0);
+  const subtotal = cartData?.total ?? items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
   const deliveryFee = subtotal > 2000 ? 0 : 99;
   const total = subtotal + deliveryFee;
+  const totalBoxes = items.reduce((sum, item) => sum + Number(item.boxes || item.quantity || 0), 0);
+  const hasMinimumBoxes = totalBoxes >= MIN_TOTAL_BOXES;
+  const boxesShort = Math.max(MIN_TOTAL_BOXES - totalBoxes, 0);
+
+  const handleCheckout = () => {
+    if (!hasMinimumBoxes) {
+      Alert.alert(
+        'Minimum order',
+        `Add at least ${boxesShort} more box${boxesShort === 1 ? '' : 'es'} to reach the minimum ${MIN_TOTAL_BOXES} boxes.`
+      );
+      return;
+    }
+
+    navigation.navigate('Checkout', { items, total, subtotal, totalBoxes });
+  };
 
   const renderItem = ({ item }) => {
-    const product = item.product || item;
-    const price = product.price || item.price || 0;
+    const product = item.product || {};
+    const price = product.price || 0;
     const boxes = item.boxes || item.quantity || 1;
-    const pid = product._id || product.id;
+    const itemSubtotal = item.subtotal ?? price * boxes;
+    const pid = product._id;
     const isRemoving = removingId === pid;
 
     return (
@@ -78,26 +106,23 @@ export default function CartScreen({ navigation }) {
           {product.image ? (
             <Image source={{ uri: product.image }} style={styles.cartImage} resizeMode="cover" />
           ) : (
-            <Text style={styles.cartEmoji}>💧</Text>
+            <BrandMark size={42} />
           )}
         </View>
         <View style={styles.cartItemInfo}>
           <Text style={styles.itemName} numberOfLines={2}>{product.name}</Text>
-          {product.category && (
+          {product.category ? (
             <Text style={styles.itemBrand}>{product.category}</Text>
-          )}
+          ) : null}
           <View style={styles.itemBottom}>
-            <Text style={styles.itemPrice}>₹{price?.toLocaleString()}/box</Text>
+            <Text style={styles.itemPrice}>Rs.{price?.toLocaleString()}/box</Text>
             <View style={styles.itemQty}>
               <Text style={styles.qtyLabel}>Boxes: </Text>
               <Text style={styles.qtyValue}>{boxes}</Text>
             </View>
           </View>
           <Text style={styles.itemSubtotal}>
-            Subtotal: ₹{(price * boxes)?.toLocaleString()}
-            {product.bottlesPerBox
-              ? `  ·  ${boxes * product.bottlesPerBox} bottles`
-              : ''}
+            Subtotal: Rs.{itemSubtotal?.toLocaleString()}
           </Text>
         </View>
         <TouchableOpacity
@@ -105,7 +130,7 @@ export default function CartScreen({ navigation }) {
           onPress={() => handleRemove(pid, product.name)}
           disabled={isRemoving}
         >
-          <Text style={styles.removeIcon}>🗑</Text>
+          <Icon name="trash-2" size={16} color={COLORS.error} />
         </TouchableOpacity>
       </View>
     );
@@ -115,10 +140,9 @@ export default function CartScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backIcon}>←</Text>
+          <Icon name="arrow-left" size={18} color={COLORS.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Cart</Text>
         <Text style={styles.itemCount}>{items.length} items</Text>
@@ -126,9 +150,9 @@ export default function CartScreen({ navigation }) {
 
       {items.length === 0 ? (
         <EmptyState
-          emoji="🛒"
+          icon={<Icon name="shopping-cart" size={52} color={COLORS.burgundy} style={{ marginBottom: SPACING.lg }} />}
           title="Your cart is empty"
-          subtitle="Browse our water products and add items to cart"
+          subtitle="Browse products and add items to your cart"
           action="Browse Collection"
           onAction={() => navigation.navigate('Products')}
         />
@@ -136,57 +160,66 @@ export default function CartScreen({ navigation }) {
         <>
           <FlatList
             data={items}
-            keyExtractor={(_, i) => i.toString()}
+            keyExtractor={(item) => item.product?._id || String(Math.random())}
             renderItem={renderItem}
             contentContainerStyle={styles.listContent}
             ItemSeparatorComponent={() => <Divider />}
             showsVerticalScrollIndicator={false}
-            refreshControl={
+            refreshControl={(
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={() => { setRefreshing(true); fetchCart(); }}
                 tintColor={COLORS.burgundy}
               />
-            }
-            ListFooterComponent={() => (
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryTitle}>Order Summary</Text>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Subtotal ({items.length} items)</Text>
-                  <Text style={styles.summaryValue}>₹{subtotal.toLocaleString()}</Text>
-                </View>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Delivery</Text>
-                  <Text style={[styles.summaryValue, deliveryFee === 0 && { color: COLORS.success }]}>
-                    {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}
-                  </Text>
-                </View>
-                {deliveryFee > 0 && (
-                  <Text style={styles.freeDeliveryHint}>
-                    Add ₹{(2000 - subtotal).toLocaleString()} more for free delivery
-                  </Text>
-                )}
-                <Divider />
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>Total</Text>
-                  <Text style={styles.totalAmount}>₹{total.toLocaleString()}</Text>
-                </View>
-              </View>
             )}
           />
 
-          {/* Bottom checkout bar */}
-          <View style={styles.checkoutBar}>
-            <View>
-              <Text style={styles.checkoutTotal}>₹{total.toLocaleString()}</Text>
-              <Text style={styles.checkoutLabel}>including delivery</Text>
+          <View style={styles.checkoutWrap}>
+            {summaryOpen ? (
+              <View style={styles.summaryAccordion}>
+                <Text style={styles.summaryTitle}>Order Summary</Text>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Subtotal ({items.length} items)</Text>
+                  <Text style={styles.summaryValue}>Rs.{subtotal.toLocaleString()}</Text>
+                </View>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>Total boxes</Text>
+                  <Text style={styles.summaryValue}>{totalBoxes}</Text>
+                </View>
+                {!hasMinimumBoxes ? (
+                  <Text style={styles.minimumHint}>
+                    Minimum order is {MIN_TOTAL_BOXES} boxes. Add {boxesShort} more.
+                  </Text>
+                ) : null}
+                <Divider style={styles.summaryDivider} />
+                <View style={styles.totalRow}>
+                  <Text style={styles.totalLabel}>Total</Text>
+                  <Text style={styles.totalAmount}>Rs.{total.toLocaleString()}</Text>
+                </View>
+              </View>
+            ) : null}
+            <View style={styles.checkoutBar}>
+              <TouchableOpacity
+                style={styles.checkoutSummary}
+                onPress={() => setSummaryOpen((open) => !open)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.checkoutLabel}>Order Summary</Text>
+                <View style={styles.checkoutSummaryRow}>
+                  <Text style={styles.checkoutTotal}>Rs.{total.toLocaleString()}</Text>
+                  <Icon
+                    name={summaryOpen ? 'chevron-down' : 'chevron-up'}
+                    size={18}
+                    color={COLORS.textSecondary}
+                  />
+                </View>
+              </TouchableOpacity>
+              <Button
+                title={hasMinimumBoxes ? 'Checkout' : `Min ${MIN_TOTAL_BOXES} Boxes`}
+                style={styles.checkoutButton}
+                onPress={handleCheckout}
+              />
             </View>
-            <Button
-              title="Proceed to Checkout →"
-              size="lg"
-              style={{ flex: 1, marginLeft: SPACING.md }}
-              onPress={() => navigation.navigate('Checkout', { items, total, subtotal })}
-            />
           </View>
         </>
       )}
@@ -212,7 +245,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     marginRight: SPACING.md,
   },
-  backIcon: { fontSize: TYPOGRAPHY.lg },
   headerTitle: {
     flex: 1, fontSize: TYPOGRAPHY.xl,
     fontFamily: 'DMSans_700Bold', color: COLORS.textPrimary,
@@ -220,7 +252,7 @@ const styles = StyleSheet.create({
   itemCount: {
     fontSize: TYPOGRAPHY.sm, fontFamily: 'DMSans_400Regular', color: COLORS.textMuted,
   },
-  listContent: { padding: SPACING.lg, paddingBottom: 140 },
+  listContent: { padding: SPACING.lg, paddingBottom: 130 },
   cartItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -233,7 +265,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
   },
   cartImage: { width: '100%', height: '100%' },
-  cartEmoji: { fontSize: 36 },
   cartItemInfo: { flex: 1 },
   itemName: {
     fontSize: TYPOGRAPHY.base, fontFamily: 'DMSans_500Medium', color: COLORS.textPrimary,
@@ -261,14 +292,21 @@ const styles = StyleSheet.create({
   removeBtn: {
     padding: SPACING.sm,
   },
-  removeIcon: { fontSize: 18 },
-  summaryCard: {
+  checkoutWrap: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  summaryAccordion: {
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.xl,
-    padding: SPACING.xl,
-    marginTop: SPACING.lg,
-    borderWidth: 1,
+    marginHorizontal: SPACING.lg,
+    marginBottom: SPACING.sm,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    borderWidth: 1.5,
     borderColor: COLORS.border,
+    ...SHADOW.md,
   },
   summaryTitle: {
     fontSize: TYPOGRAPHY.md, fontFamily: 'DMSans_700Bold', color: COLORS.textPrimary,
@@ -283,9 +321,15 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: TYPOGRAPHY.base, fontFamily: 'DMSans_500Medium', color: COLORS.textPrimary,
   },
-  freeDeliveryHint: {
-    fontSize: TYPOGRAPHY.xs, fontFamily: 'DMSans_400Regular', color: COLORS.gold,
-    marginTop: -4, marginBottom: SPACING.sm,
+  minimumHint: {
+    fontSize: TYPOGRAPHY.xs,
+    fontFamily: 'DMSans_500Medium',
+    color: COLORS.error,
+    marginTop: -2,
+    marginBottom: SPACING.sm,
+  },
+  summaryDivider: {
+    marginVertical: SPACING.sm,
   },
   totalRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -297,17 +341,36 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.xxl, fontFamily: 'DMSans_700Bold', color: COLORS.burgundy,
   },
   checkoutBar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: COLORS.surface,
     borderTopWidth: 1, borderTopColor: COLORS.border,
     flexDirection: 'row', alignItems: 'center',
-    padding: SPACING.lg, paddingBottom: 30,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.lg,
+    minHeight: 84,
     ...SHADOW.lg,
   },
+  checkoutSummary: {
+    flex: 1,
+    marginRight: SPACING.md,
+  },
+  checkoutSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
   checkoutTotal: {
-    fontSize: TYPOGRAPHY.xl, fontFamily: 'DMSans_700Bold', color: COLORS.textPrimary,
+    fontSize: TYPOGRAPHY.lg, fontFamily: 'DMSans_700Bold', color: COLORS.textPrimary,
   },
   checkoutLabel: {
-    fontSize: TYPOGRAPHY.xs, fontFamily: 'DMSans_400Regular', color: COLORS.textMuted,
+    fontSize: TYPOGRAPHY.xs, fontFamily: 'DMSans_500Medium', color: COLORS.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 2,
+  },
+  checkoutButton: {
+    flex: 1,
+    marginLeft: 'auto',
+    paddingVertical: 14,
   },
 });

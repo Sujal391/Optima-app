@@ -1,7 +1,28 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getProfileWithToken } from '../api';
 
 const AuthContext = createContext(null);
+
+const normalizeProfile = (data, fallback = {}) => {
+  const user = data?.user || data || {};
+  const customerDetails = user.customerDetails || fallback.customerDetails || {};
+  const address = customerDetails.address || fallback.addressObj || {};
+
+  return {
+    ...fallback,
+    ...user,
+    userCode: user.userCode || fallback.userCode || '',
+    role: user.role || fallback.role || 'user',
+    photo: user.photo ?? fallback.photo ?? null,
+    firmName: customerDetails.firmName || user.firmName || fallback.firmName || '',
+    customerDetails: {
+      ...customerDetails,
+      address,
+    },
+    addressObj: address,
+  };
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -17,8 +38,12 @@ export const AuthProvider = ({ children }) => {
       const storedToken = await AsyncStorage.getItem('token');
       const storedUser = await AsyncStorage.getItem('user');
       if (storedToken && storedUser) {
+        const parsedUser = JSON.parse(storedUser);
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        setUser(parsedUser);
+        if (!parsedUser?.name || !parsedUser?.phoneNumber || !parsedUser?.customerDetails) {
+          await hydrateUserProfile(storedToken, parsedUser);
+        }
       }
     } catch (e) {
       console.log('Auth load error:', e);
@@ -27,11 +52,28 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const hydrateUserProfile = async (tokenValue, fallbackUser = null) => {
+    try {
+      const res = await getProfileWithToken(tokenValue);
+      const normalized = normalizeProfile(res.data, fallbackUser || {});
+      await AsyncStorage.setItem('user', JSON.stringify(normalized));
+      setUser(normalized);
+      return normalized;
+    } catch (e) {
+      const normalizedFallback = normalizeProfile(fallbackUser || {});
+      await AsyncStorage.setItem('user', JSON.stringify(normalizedFallback));
+      setUser(normalizedFallback);
+      return normalizedFallback;
+    }
+  };
+
   const signIn = async (tokenValue, userData) => {
+    const normalizedUser = normalizeProfile(userData || {});
     await AsyncStorage.setItem('token', tokenValue);
-    await AsyncStorage.setItem('user', JSON.stringify(userData));
+    await AsyncStorage.setItem('user', JSON.stringify(normalizedUser));
     setToken(tokenValue);
-    setUser(userData);
+    setUser(normalizedUser);
+    await hydrateUserProfile(tokenValue, normalizedUser);
   };
 
   const signOut = async () => {
@@ -41,8 +83,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateUser = (userData) => {
-    setUser(userData);
-    AsyncStorage.setItem('user', JSON.stringify(userData));
+    const normalizedUser = normalizeProfile(userData, user || {});
+    setUser(normalizedUser);
+    AsyncStorage.setItem('user', JSON.stringify(normalizedUser));
   };
 
   return (

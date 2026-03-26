@@ -16,11 +16,12 @@ export const CartProvider = ({ children }) => {
   const fetchCart = async () => {
     try {
       const res = await getCart();
-      const items = res.data?.items || res.data || [];
+      // API: { cart: { products: [...], total } }
+      const items = res.data?.cart?.products || [];
       setCartItems(items);
       setCartCount(items.length);
     } catch (e) {
-      console.log('Cart fetch error:', e);
+      console.log('Cart fetch error:', e?.message || String(e));
     }
   };
 

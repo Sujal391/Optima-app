@@ -1,48 +1,127 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Alert,
   TouchableOpacity, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
-import { Button, Input, Divider } from '../components/UI';
+import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../theme';
+import { Button, Input, Divider, Icon } from '../components/UI';
 import { createOrder } from '../api';
 import { useAuth } from '../context/AuthContext';
 
+const MIN_TOTAL_BOXES = 200;
+
+const getShippingAddress = (user) => {
+  const address = user?.addressObj || user?.customerDetails?.address || {};
+  return {
+    address: address.address || '',
+    city: address.city || '',
+    state: address.state || '',
+    pinCode: address.pinCode || '',
+  };
+};
+
 export default function CheckoutScreen({ navigation, route }) {
-  const { items = [], total = 0, subtotal = 0 } = route.params || {};
+  const { items = [], total = 0, subtotal = 0, totalBoxes = 0 } = route.params || {};
   const { user } = useAuth();
-  const [address, setAddress] = useState(user?.address || '');
+  const profileAddress = getShippingAddress(user);
+  const [address, setAddress] = useState(profileAddress.address);
+  const [city, setCity] = useState(profileAddress.city);
+  const [stateName, setStateName] = useState(profileAddress.state);
+  const [pinCode, setPinCode] = useState(profileAddress.pinCode);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
+  useEffect(() => {
+    const nextAddress = getShippingAddress(user);
+    setAddress(nextAddress.address);
+    setCity(nextAddress.city);
+    setStateName(nextAddress.state);
+    setPinCode(nextAddress.pinCode);
+  }, [user]);
+
   const validate = () => {
-    const e = {};
-    if (!address.trim() || address.length < 10) e.address = 'Please enter a complete delivery address';
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    const nextErrors = {};
+    if (!address.trim() || address.trim().length < 5) {
+      nextErrors.address = 'Please enter a valid address';
+    }
+    if (!city.trim()) {
+      nextErrors.city = 'Please enter city';
+    }
+    if (!stateName.trim()) {
+      nextErrors.state = 'Please enter state';
+    }
+    if (!/^\d{6}$/.test(pinCode.trim())) {
+      nextErrors.pinCode = 'Please enter a valid 6-digit PIN code';
+    }
+    if (totalBoxes < MIN_TOTAL_BOXES) {
+      nextErrors.totalBoxes = `Minimum ${MIN_TOTAL_BOXES} total boxes required`;
+    }
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
   const handlePlaceOrder = async () => {
-    if (!validate()) return;
+    if (!validate()) {
+      if (totalBoxes < MIN_TOTAL_BOXES) {
+        Alert.alert('Minimum order', `You need at least ${MIN_TOTAL_BOXES} total boxes before checkout.`);
+      }
+      return;
+    }
+
     setLoading(true);
     try {
-      const orderProducts = items.map((item) => {
-        const product = item.product || item;
-        return {
-          product: product._id || product.id,
-          quantity: item.quantity || 1,
-          price: product.offerPrice || product.price || item.price || 0,
-        };
-      });
+      const payload = {
+        paymentMethod: 'COD',
+        deliveryChoice: 'homeDelivery',
+        shippingAddress: {
+          address: address.trim(),
+          city: city.trim(),
+          state: stateName.trim(),
+          pinCode: pinCode.trim(),
+        },
+        products: items.map((item) => {
+          const product = item.product || item;
+          return {
+            productId: product._id || product.id,
+            boxes: item.boxes || item.quantity || 1,
+          };
+        }),
+      };
 
-      const res = await createOrder(orderProducts, total, address);
+      const res = await createOrder(payload);
       const order = res.data;
+      
+      console.log('CreateOrder response:', order);
+      console.log('Order keys:', Object.keys(order || {}));
 
-      navigation.replace('Payment', {
-        order,
-        total,
-        items,
-      });
+      Alert.alert(
+        'Choose Payment Mode',
+        'Select how you want to complete this order.',
+        [
+          {
+            text: 'Cash',
+            onPress: () => {
+              navigation.replace('OrderSuccess', {
+                order,
+                orderId: order?._id || order?.id || order?.orderId,
+                total,
+                itemCount: items?.length || 0,
+                paymentMode: 'Cash',
+              });
+            },
+          },
+          {
+            text: 'Online',
+            onPress: () => {
+              navigation.navigate('Payment', {
+                order,
+                total,
+                items,
+              });
+            },
+          },
+        ]
+      );
     } catch (e) {
       Alert.alert('Order Failed', e.message);
     } finally {
@@ -51,6 +130,11 @@ export default function CheckoutScreen({ navigation, route }) {
   };
 
   const deliveryFee = subtotal > 2000 ? 0 : 99;
+  const goToStep = (stepIndex) => {
+    if (stepIndex === 0) {
+      navigation.goBack();
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -62,94 +146,120 @@ export default function CheckoutScreen({ navigation, route }) {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={styles.backIcon}>←</Text>
+            <Icon name="arrow-left" size={18} color={COLORS.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Checkout</Text>
         </View>
 
-        {/* Progress bar */}
         <View style={styles.progress}>
           {['Cart', 'Checkout', 'Payment', 'Done'].map((step, i) => (
             <React.Fragment key={step}>
-              <View style={[styles.progressStep, i <= 1 && styles.progressStepActive]}>
+              <TouchableOpacity
+                style={[styles.progressStep, i <= 1 && styles.progressStepActive]}
+                onPress={() => goToStep(i)}
+                disabled={i !== 0}
+                activeOpacity={0.8}
+              >
                 <View style={[styles.progressDot, i <= 1 && styles.progressDotActive]}>
                   <Text style={[styles.progressDotText, i <= 1 && styles.progressDotTextActive]}>
                     {i < 1 ? '✓' : i + 1}
                   </Text>
                 </View>
                 <Text style={[styles.progressLabel, i <= 1 && styles.progressLabelActive]}>{step}</Text>
-              </View>
+              </TouchableOpacity>
               {i < 3 && <View style={[styles.progressLine, i < 1 && styles.progressLineActive]} />}
             </React.Fragment>
           ))}
         </View>
 
-        {/* Delivery Address */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📍 Delivery Address</Text>
+          <View style={styles.sectionTitleRow}>
+            <Icon name="map-pin" size={16} color={COLORS.textPrimary} />
+            <Text style={styles.sectionTitle}>Shipping Address</Text>
+          </View>
           <Input
-            label="Full Address"
-            placeholder="House no., Street, Area, City, State, PIN"
+            label="Address"
+            placeholder="Near Bus Stand"
             value={address}
             onChangeText={setAddress}
             multiline
-            numberOfLines={4}
+            numberOfLines={3}
             error={errors.address}
             autoCapitalize="sentences"
           />
+          <Input
+            label="City"
+            placeholder="Ahmedabad"
+            value={city}
+            onChangeText={setCity}
+            error={errors.city}
+            autoCapitalize="words"
+          />
+          <Input
+            label="State"
+            placeholder="Gujarat"
+            value={stateName}
+            onChangeText={setStateName}
+            error={errors.state}
+            autoCapitalize="words"
+          />
+          <Input
+            label="PIN Code"
+            placeholder="380001"
+            value={pinCode}
+            onChangeText={setPinCode}
+            error={errors.pinCode}
+            keyboardType="number-pad"
+            maxLength={6}
+          />
         </View>
 
-        {/* Order Summary */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🛒 Order Summary</Text>
+          <View style={styles.sectionTitleRow}>
+            <Icon name="shopping-cart" size={16} color={COLORS.textPrimary} />
+            <Text style={styles.sectionTitle}>Order Summary</Text>
+          </View>
+          <View style={styles.boxSummary}>
+            <Text style={styles.boxSummaryLabel}>Total boxes</Text>
+            <Text style={styles.boxSummaryValue}>{totalBoxes}</Text>
+          </View>
+          {errors.totalBoxes ? (
+            <Text style={styles.boxError}>{errors.totalBoxes}</Text>
+          ) : null}
           {items.slice(0, 5).map((item, i) => {
             const product = item.product || item;
             const price = product.offerPrice || product.price || item.price || 0;
+            const boxes = item.boxes || item.quantity || 1;
             return (
               <View key={i} style={styles.orderItem}>
-                <Text style={styles.orderItemName} numberOfLines={1}>{product.name}</Text>
-                <Text style={styles.orderItemDetail}>x{item.quantity || 1}</Text>
-                <Text style={styles.orderItemPrice}>₹{(price * (item.quantity || 1)).toLocaleString()}</Text>
+                <Text style={styles.orderItemName} numberOfLines={1}>{product.name} - {product.category}</Text>
+                <Text style={styles.orderItemDetail}>{boxes} boxes</Text>
+                <Text style={styles.orderItemPrice}>Rs.{(price * boxes).toLocaleString()}</Text>
               </View>
             );
           })}
-          {items.length > 5 && (
+          {items.length > 5 ? (
             <Text style={styles.moreItems}>+ {items.length - 5} more items</Text>
-          )}
+          ) : null}
         </View>
 
-        {/* Payment Breakdown */}
         <View style={styles.billCard}>
           <Text style={styles.billTitle}>Bill Details</Text>
           <View style={styles.billRow}>
             <Text style={styles.billLabel}>Item Total</Text>
-            <Text style={styles.billValue}>₹{subtotal.toLocaleString()}</Text>
-          </View>
-          <View style={styles.billRow}>
-            <Text style={styles.billLabel}>Delivery Fee</Text>
-            <Text style={[styles.billValue, deliveryFee === 0 && { color: COLORS.success }]}>
-              {deliveryFee === 0 ? 'FREE' : `₹${deliveryFee}`}
-            </Text>
+            <Text style={styles.billValue}>Rs.{subtotal.toLocaleString()}</Text>
           </View>
           <Divider style={{ marginVertical: SPACING.md }} />
           <View style={styles.billRow}>
             <Text style={styles.billTotalLabel}>Grand Total</Text>
-            <Text style={styles.billTotalValue}>₹{total.toLocaleString()}</Text>
+            <Text style={styles.billTotalValue}>Rs.{total.toLocaleString()}</Text>
           </View>
         </View>
 
-        {/* Notes */}
-        <View style={styles.noteBox}>
-          <Text style={styles.noteText}>
-            💳 Payment via Razorpay on next step. COD not available.
-          </Text>
-        </View>
-
         <Button
-          title="Place Order →"
+          title="Place Order"
           onPress={handlePlaceOrder}
           loading={loading}
           size="lg"
@@ -174,14 +284,17 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   backBtn: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: COLORS.backgroundDark,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  backIcon: { fontSize: TYPOGRAPHY.lg },
   headerTitle: {
     fontSize: TYPOGRAPHY.xl,
-    fontFamily: 'DMSans_700Bold', color: COLORS.textPrimary,
+    fontFamily: 'DMSans_700Bold',
+    color: COLORS.textPrimary,
   },
   progress: {
     flexDirection: 'row',
@@ -195,21 +308,35 @@ const styles = StyleSheet.create({
   progressStep: { alignItems: 'center', gap: 4 },
   progressStepActive: {},
   progressDot: {
-    width: 28, height: 28, borderRadius: 14,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: COLORS.border,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   progressDotActive: { backgroundColor: COLORS.burgundy },
   progressDotText: {
-    fontSize: 11, fontFamily: 'DMSans_700Bold', color: COLORS.textMuted,
+    fontSize: 11,
+    fontFamily: 'DMSans_700Bold',
+    color: COLORS.textMuted,
   },
   progressDotTextActive: { color: '#fff' },
   progressLabel: {
-    fontSize: 10, fontFamily: 'DMSans_400Regular', color: COLORS.textMuted,
+    fontSize: 10,
+    fontFamily: 'DMSans_400Regular',
+    color: COLORS.textMuted,
   },
-  progressLabelActive: { color: COLORS.burgundy, fontFamily: 'DMSans_500Medium' },
+  progressLabelActive: {
+    color: COLORS.burgundy,
+    fontFamily: 'DMSans_500Medium',
+  },
   progressLine: {
-    flex: 1, height: 2, backgroundColor: COLORS.border, marginHorizontal: 4, marginBottom: 14,
+    flex: 1,
+    height: 2,
+    backgroundColor: COLORS.border,
+    marginHorizontal: 4,
+    marginBottom: 14,
   },
   progressLineActive: { backgroundColor: COLORS.burgundy },
   section: {
@@ -220,26 +347,84 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  sectionTitle: {
-    fontSize: TYPOGRAPHY.md, fontFamily: 'DMSans_700Bold', color: COLORS.textPrimary,
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     marginBottom: SPACING.md,
   },
+  sectionTitle: {
+    fontSize: TYPOGRAPHY.md,
+    fontFamily: 'DMSans_700Bold',
+    color: COLORS.textPrimary,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.sm,
+  },
+  metaLabel: {
+    fontSize: TYPOGRAPHY.sm,
+    fontFamily: 'DMSans_400Regular',
+    color: COLORS.textSecondary,
+  },
+  metaValue: {
+    fontSize: TYPOGRAPHY.sm,
+    fontFamily: 'DMSans_700Bold',
+    color: COLORS.textPrimary,
+  },
+  boxSummary: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  boxSummaryLabel: {
+    fontSize: TYPOGRAPHY.base,
+    fontFamily: 'DMSans_500Medium',
+    color: COLORS.textSecondary,
+  },
+  boxSummaryValue: {
+    fontSize: TYPOGRAPHY.lg,
+    fontFamily: 'DMSans_700Bold',
+    color: COLORS.textPrimary,
+  },
+  boxError: {
+    fontSize: TYPOGRAPHY.xs,
+    fontFamily: 'DMSans_500Medium',
+    color: COLORS.error,
+    marginBottom: SPACING.sm,
+  },
   orderItem: {
-    flexDirection: 'row', alignItems: 'center', paddingVertical: SPACING.sm, gap: SPACING.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SPACING.sm,
+    gap: SPACING.sm,
   },
   orderItemName: {
-    flex: 1, fontSize: TYPOGRAPHY.sm, fontFamily: 'DMSans_400Regular', color: COLORS.textSecondary,
+    flex: 1,
+    fontSize: TYPOGRAPHY.sm,
+    fontFamily: 'DMSans_400Regular',
+    color: COLORS.textSecondary,
   },
   orderItemDetail: {
-    fontSize: TYPOGRAPHY.sm, fontFamily: 'DMSans_500Medium', color: COLORS.textMuted,
+    fontSize: TYPOGRAPHY.sm,
+    fontFamily: 'DMSans_500Medium',
+    color: COLORS.textMuted,
   },
   orderItemPrice: {
-    fontSize: TYPOGRAPHY.sm, fontFamily: 'DMSans_700Bold', color: COLORS.textPrimary,
-    minWidth: 70, textAlign: 'right',
+    fontSize: TYPOGRAPHY.sm,
+    fontFamily: 'DMSans_700Bold',
+    color: COLORS.textPrimary,
+    minWidth: 70,
+    textAlign: 'right',
   },
   moreItems: {
-    fontSize: TYPOGRAPHY.xs, fontFamily: 'DMSans_400Regular', color: COLORS.textMuted,
-    textAlign: 'center', marginTop: SPACING.sm,
+    fontSize: TYPOGRAPHY.xs,
+    fontFamily: 'DMSans_400Regular',
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    marginTop: SPACING.sm,
   },
   billCard: {
     margin: SPACING.lg,
@@ -251,31 +436,34 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   billTitle: {
-    fontSize: TYPOGRAPHY.md, fontFamily: 'DMSans_700Bold', color: COLORS.textPrimary,
+    fontSize: TYPOGRAPHY.md,
+    fontFamily: 'DMSans_700Bold',
+    color: COLORS.textPrimary,
     marginBottom: SPACING.md,
   },
   billRow: {
-    flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACING.sm,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.sm,
   },
   billLabel: {
-    fontSize: TYPOGRAPHY.base, fontFamily: 'DMSans_400Regular', color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.base,
+    fontFamily: 'DMSans_400Regular',
+    color: COLORS.textSecondary,
   },
   billValue: {
-    fontSize: TYPOGRAPHY.base, fontFamily: 'DMSans_500Medium', color: COLORS.textPrimary,
+    fontSize: TYPOGRAPHY.base,
+    fontFamily: 'DMSans_500Medium',
+    color: COLORS.textPrimary,
   },
   billTotalLabel: {
-    fontSize: TYPOGRAPHY.lg, fontFamily: 'DMSans_700Bold', color: COLORS.textPrimary,
+    fontSize: TYPOGRAPHY.lg,
+    fontFamily: 'DMSans_700Bold',
+    color: COLORS.textPrimary,
   },
   billTotalValue: {
-    fontSize: TYPOGRAPHY.xl, fontFamily: 'DMSans_700Bold', color: COLORS.burgundy,
-  },
-  noteBox: {
-    marginHorizontal: SPACING.lg, marginBottom: SPACING.lg,
-    backgroundColor: COLORS.warningLight,
-    borderRadius: RADIUS.md, padding: SPACING.md,
-  },
-  noteText: {
-    fontSize: TYPOGRAPHY.sm, fontFamily: 'DMSans_400Regular', color: COLORS.warning,
-    lineHeight: 20,
+    fontSize: TYPOGRAPHY.xl,
+    fontFamily: 'DMSans_700Bold',
+    color: COLORS.burgundy,
   },
 });

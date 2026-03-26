@@ -6,15 +6,49 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  Image,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 
-// ─── Button ──────────────────────────────────────────────────────────────────
+const BRAND_ICON = require('../../assets/icon.png');
+
+export const Icon = ({ name, size = 20, color = COLORS.textPrimary, style }) => (
+  <Feather name={name} size={size} color={color} style={style} />
+);
+
+export const BrandMark = ({ size = 48, style, imageStyle }) => (
+  <View
+    style={[
+      styles.brandMark,
+      {
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+      },
+      style,
+    ]}
+  >
+    <Image
+      source={BRAND_ICON}
+      style={[
+        {
+          width: size * 0.68,
+          height: size * 0.68,
+          borderRadius: size * 0.18,
+        },
+        imageStyle,
+      ]}
+      resizeMode="contain"
+    />
+  </View>
+);
+
 export const Button = ({
   title,
   onPress,
-  variant = 'primary', // primary | secondary | outline | ghost | danger
-  size = 'md',         // sm | md | lg
+  variant = 'primary',
+  size = 'md',
   loading = false,
   disabled = false,
   icon,
@@ -85,7 +119,6 @@ export const Button = ({
   );
 };
 
-// ─── Input ───────────────────────────────────────────────────────────────────
 export const Input = ({
   label,
   placeholder,
@@ -104,14 +137,20 @@ export const Input = ({
 }) => (
   <View style={[styles.inputContainer, style]}>
     {label && <Text style={styles.inputLabel}>{label}</Text>}
-    <View style={[
-      styles.inputWrapper,
-      error && { borderColor: COLORS.error },
-      !editable && { backgroundColor: COLORS.backgroundDark },
-    ]}>
+    <View
+      style={[
+        styles.inputWrapper,
+        error && { borderColor: COLORS.error },
+        !editable && { backgroundColor: COLORS.backgroundDark },
+      ]}
+    >
       {icon && <View style={styles.inputIcon}>{icon}</View>}
       <TextInput
-        style={[styles.input, icon && { paddingLeft: 0 }, multiline && { height: numberOfLines * 24, textAlignVertical: 'top' }]}
+        style={[
+          styles.input,
+          icon && { paddingLeft: 0 },
+          multiline && { height: numberOfLines * 24, textAlignVertical: 'top' },
+        ]}
         placeholder={placeholder}
         placeholderTextColor={COLORS.textMuted}
         value={value}
@@ -129,7 +168,6 @@ export const Input = ({
   </View>
 );
 
-// ─── Card ─────────────────────────────────────────────────────────────────────
 export const Card = ({ children, style, onPress, elevated = false }) => {
   const Component = onPress ? TouchableOpacity : View;
   return (
@@ -143,14 +181,12 @@ export const Card = ({ children, style, onPress, elevated = false }) => {
   );
 };
 
-// ─── Badge ────────────────────────────────────────────────────────────────────
 export const Badge = ({ label, color = COLORS.burgundy, textColor = '#fff', style }) => (
   <View style={[styles.badge, { backgroundColor: color }, style]}>
     <Text style={[styles.badgeText, { color: textColor }]}>{label}</Text>
   </View>
 );
 
-// ─── Section Header ───────────────────────────────────────────────────────────
 export const SectionHeader = ({ title, subtitle, action, onAction }) => (
   <View style={styles.sectionHeader}>
     <View style={{ flex: 1 }}>
@@ -165,15 +201,13 @@ export const SectionHeader = ({ title, subtitle, action, onAction }) => (
   </View>
 );
 
-// ─── Divider ──────────────────────────────────────────────────────────────────
 export const Divider = ({ style }) => (
   <View style={[styles.divider, style]} />
 );
 
-// ─── Empty State ──────────────────────────────────────────────────────────────
-export const EmptyState = ({ emoji, title, subtitle, action, onAction }) => (
+export const EmptyState = ({ icon, title, subtitle, action, onAction }) => (
   <View style={styles.emptyState}>
-    <Text style={styles.emptyEmoji}>{emoji || '💧'}</Text>
+    {icon || <Icon name="inbox" size={52} color={COLORS.burgundy} style={styles.emptyIcon} />}
     <Text style={styles.emptyTitle}>{title}</Text>
     {subtitle && <Text style={styles.emptySubtitle}>{subtitle}</Text>}
     {action && (
@@ -182,7 +216,6 @@ export const EmptyState = ({ emoji, title, subtitle, action, onAction }) => (
   </View>
 );
 
-// ─── Loading Spinner ──────────────────────────────────────────────────────────
 export const LoadingSpinner = ({ text }) => (
   <View style={styles.loading}>
     <ActivityIndicator color={COLORS.burgundy} size="large" />
@@ -190,22 +223,19 @@ export const LoadingSpinner = ({ text }) => (
   </View>
 );
 
-// ─── Price Display ────────────────────────────────────────────────────────────
 export const PriceDisplay = ({ price, originalPrice, size = 'md' }) => {
   const fontSize = size === 'sm' ? TYPOGRAPHY.sm : size === 'lg' ? TYPOGRAPHY.xl : TYPOGRAPHY.md;
   return (
     <View style={styles.priceRow}>
-      <Text style={[styles.price, { fontSize }]}>₹{price?.toLocaleString()}</Text>
+      <Text style={[styles.price, { fontSize }]}>Rs.{price?.toLocaleString()}</Text>
       {originalPrice && originalPrice > price && (
-        <Text style={styles.originalPrice}>₹{originalPrice?.toLocaleString()}</Text>
+        <Text style={styles.originalPrice}>Rs.{originalPrice?.toLocaleString()}</Text>
       )}
     </View>
   );
 };
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  // Button
   btn: {
     borderRadius: RADIUS.md,
     borderWidth: 1.5,
@@ -221,7 +251,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 
-  // Input
   inputContainer: {
     marginBottom: SPACING.md,
   },
@@ -262,7 +291,6 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_400Regular',
   },
 
-  // Card
   card: {
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.lg,
@@ -271,7 +299,6 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
 
-  // Badge
   badge: {
     paddingHorizontal: 10,
     paddingVertical: 3,
@@ -283,7 +310,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // Section header
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -306,22 +332,19 @@ const styles = StyleSheet.create({
     color: COLORS.burgundy,
   },
 
-  // Divider
   divider: {
     height: 1,
     backgroundColor: COLORS.border,
     marginVertical: SPACING.md,
   },
 
-  // Empty state
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: SPACING.xxxl,
   },
-  emptyEmoji: {
-    fontSize: 56,
+  emptyIcon: {
     marginBottom: SPACING.lg,
   },
   emptyTitle: {
@@ -339,7 +362,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
-  // Loading
   loading: {
     flex: 1,
     alignItems: 'center',
@@ -353,7 +375,6 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
   },
 
-  // Price
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -368,5 +389,14 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_400Regular',
     color: COLORS.textMuted,
     textDecorationLine: 'line-through',
+  },
+
+  brandMark: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.24)',
+    ...SHADOW.sm,
   },
 });

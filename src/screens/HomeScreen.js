@@ -4,8 +4,8 @@ import {
   TouchableOpacity, Image, Dimensions, RefreshControl,
 } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
-import { SectionHeader, Badge, LoadingSpinner, Card } from '../components/UI';
-import { getBanners, getOffers } from '../api';
+import { SectionHeader, LoadingSpinner, Icon, BrandMark } from '../components/UI';
+import { getBanners, getProducts } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 
@@ -15,19 +15,25 @@ export default function HomeScreen({ navigation }) {
   const { user } = useAuth();
   const { cartCount } = useCart();
   const [banners, setBanners] = useState([]);
-  const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeBanner, setActiveBanner] = useState(0);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
   const bannerRef = useRef(null);
+  const displayName =
+    user?.name?.trim() ||
+    user?.customerDetails?.firmName ||
+    user?.firmName ||
+    user?.userCode ||
+    user?.email?.split('@')[0] ||
+    'Customer';
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  // Auto-scroll banners
   useEffect(() => {
-    if (!banners.length) return;
+    if (!banners.length) return undefined;
     const timer = setInterval(() => {
       const next = (activeBanner + 1) % banners.length;
       bannerRef.current?.scrollToIndex({ index: next, animated: true });
@@ -38,22 +44,22 @@ export default function HomeScreen({ navigation }) {
 
   const fetchData = async () => {
     try {
-      const [bannerRes, offerRes] = await Promise.all([getBanners(), getOffers()]);
-      // Handle various API response shapes: array | { data } | { banners } | { offers }
+      const [bannerRes, productsRes] = await Promise.all([getBanners(), getProducts()]);
       const bannerData = bannerRes.data;
+      const rawProducts = productsRes.data;
+      const products =
+        Array.isArray(rawProducts) ? rawProducts :
+        Array.isArray(rawProducts?.products) ? rawProducts.products :
+        Array.isArray(rawProducts?.data) ? rawProducts.data : [];
+
       setBanners(
         Array.isArray(bannerData) ? bannerData :
         Array.isArray(bannerData?.banners) ? bannerData.banners :
         Array.isArray(bannerData?.data) ? bannerData.data : []
       );
-      const offerData = offerRes.data;
-      setOffers(
-        Array.isArray(offerData) ? offerData :
-        Array.isArray(offerData?.offers) ? offerData.offers :
-        Array.isArray(offerData?.data) ? offerData.data : []
-      );
+      setFeaturedProducts(products.filter((p) => p.isActive !== false).slice(0, 4));
     } catch (e) {
-      console.log('Home fetch error:', e);
+      console.log('Home fetch error:', e?.message || String(e));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -65,15 +71,6 @@ export default function HomeScreen({ navigation }) {
     fetchData();
   };
 
-  const categories = [
-    { icon: '💧', label: '500ml', type: 'bottles', category: '500ml' },
-    { icon: '🫙', label: '1 Litre', type: 'bottles', category: '1l' },
-    { icon: '🪣', label: '5 Litre', type: 'jars', category: '5l' },
-    { icon: '🛢️', label: '20 Litre', type: 'bulk', category: '20l' },
-    { icon: '📦', label: 'Bulk Pack', type: 'bulk', category: 'bulk' },
-    { icon: '✨', label: 'All', type: null, category: null },
-  ];
-
   if (loading) return <LoadingSpinner text="Loading products..." />;
 
   return (
@@ -82,17 +79,16 @@ export default function HomeScreen({ navigation }) {
       showsVerticalScrollIndicator={false}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.burgundy} />}
     >
-      {/* Top Header */}
       <View style={styles.topHeader}>
         <View>
           <Text style={styles.greeting}>Good {getTimeGreeting()},</Text>
-          <Text style={styles.userName}>{user?.name?.split(' ')[0] || 'Customer'} 👋</Text>
+          <Text style={styles.userName}>{displayName}</Text>
         </View>
         <TouchableOpacity
           style={styles.cartBtn}
           onPress={() => navigation.navigate('Cart')}
         >
-          <Text style={styles.cartIcon}>🛒</Text>
+          <Icon name="shopping-cart" size={18} color={COLORS.textPrimary} />
           {cartCount > 0 && (
             <View style={styles.cartBadge}>
               <Text style={styles.cartBadgeText}>{cartCount}</Text>
@@ -101,16 +97,14 @@ export default function HomeScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
       <TouchableOpacity
         style={styles.searchBar}
         onPress={() => navigation.navigate('Products')}
       >
-        <Text style={styles.searchIcon}>🔍</Text>
-        <Text style={styles.searchPlaceholder}>Search water products...</Text>
+        <Icon name="search" size={16} color={COLORS.textMuted} />
+        <Text style={styles.searchPlaceholder}>Search products...</Text>
       </TouchableOpacity>
 
-      {/* Banner Carousel */}
       {banners.length > 0 ? (
         <View style={styles.bannerSection}>
           <FlatList
@@ -131,10 +125,6 @@ export default function HomeScreen({ navigation }) {
                   style={styles.bannerImage}
                   resizeMode="cover"
                 />
-                <View style={styles.bannerOverlay}>
-                  {item.title && <Text style={styles.bannerTitle}>{item.title}</Text>}
-                  {item.subtitle && <Text style={styles.bannerSubtitle}>{item.subtitle}</Text>}
-                </View>
               </View>
             )}
           />
@@ -145,80 +135,58 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
       ) : (
-        /* Fallback hero when no banners */
         <View style={styles.heroBanner}>
           <View style={styles.heroCircle} />
-          <Text style={styles.heroText}>💧</Text>
+          <BrandMark size={72} style={styles.heroMark} />
           <View style={styles.heroContent}>
-            <Text style={styles.heroTitle}>Order Pure{'\n'}Water Bottles</Text>
+            <Text style={styles.heroTitle}>Browse{'\n'}Featured Products</Text>
             <TouchableOpacity
               style={styles.heroBtn}
               onPress={() => navigation.navigate('Products')}
             >
-              <Text style={styles.heroBtnText}>Browse Products →</Text>
+              <View style={styles.heroBtnInner}>
+                <Text style={styles.heroBtnText}>Browse Products</Text>
+                <Icon name="arrow-right" size={14} color={COLORS.textPrimary} />
+              </View>
             </TouchableOpacity>
           </View>
         </View>
       )}
 
-      {/* Categories */}
       <View style={styles.section}>
-        <SectionHeader title="Browse" subtitle="Explore by category" />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll}>
-          {categories.map((cat) => (
+        <SectionHeader
+          title="Featured Products"
+          subtitle="A quick shortlist from the catalog"
+          action="View All"
+          onAction={() => navigation.navigate('Products')}
+        />
+        <View style={styles.productGrid}>
+          {featuredProducts.slice(0, 4).map((product) => (
             <TouchableOpacity
-              key={cat.label}
-              style={styles.catCard}
-              onPress={() => navigation.navigate('Products', { type: cat.type, category: cat.category })}
+              key={product._id || product.id || product.name}
+              style={styles.productCard}
+              onPress={() => navigation.navigate('ProductDetail', { product })}
+              activeOpacity={0.88}
             >
-              <View style={styles.catIcon}>
-                <Text style={styles.catEmoji}>{cat.icon}</Text>
+              <View style={styles.productImageWrap}>
+                {product.image ? (
+                  <Image source={{ uri: product.image }} style={styles.productImage} resizeMode="cover" />
+                ) : (
+                  <BrandMark size={52} />
+                )}
+                {!!product.category && (
+                  <View style={styles.productBadge}>
+                    <Text style={styles.productBadgeText}>{product.category}</Text>
+                  </View>
+                )}
               </View>
-              <Text style={styles.catLabel}>{cat.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Offers */}
-      {offers.length > 0 && (
-        <View style={styles.section}>
-          <SectionHeader
-            title="Today's Deals"
-            subtitle={`${offers.length} items on offer`}
-            action="See all"
-            onAction={() => navigation.navigate('Products', { showOffers: true })}
-          />
-          <FlatList
-            data={offers.slice(0, 6)}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => item._id || item.id}
-            renderItem={({ item }) => (
-              <OfferCard item={item} navigation={navigation} />
-            )}
-            ItemSeparatorComponent={() => <View style={{ width: SPACING.md }} />}
-          />
-        </View>
-      )}
-
-      {/* Quick Actions */}
-      <View style={styles.section}>
-        <SectionHeader title="Quick Access" />
-        <View style={styles.quickGrid}>
-          {[
-            { icon: '📦', label: 'My Orders', screen: 'Orders' },
-            { icon: '👤', label: 'Profile', screen: 'Profile' },
-            { icon: '🏷️', label: 'Offers', screen: 'Products', params: { showOffers: true } },
-            { icon: '🛒', label: 'My Cart', screen: 'Cart' },
-          ].map((q) => (
-            <TouchableOpacity
-              key={q.label}
-              style={styles.quickCard}
-              onPress={() => navigation.navigate(q.screen, q.params)}
-            >
-              <Text style={styles.quickIcon}>{q.icon}</Text>
-              <Text style={styles.quickLabel}>{q.label}</Text>
+              <View style={styles.productContent}>
+                <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
+                <Text style={styles.productMeta}>
+                  {product.bottlesPerBox ? `${product.bottlesPerBox} bottles/box` : 'Available now'}
+                </Text>
+                <Text style={styles.productPrice}>Rs.{product.price}</Text>
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -229,41 +197,13 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-function OfferCard({ item, navigation }) {
-  const discount = item.discount || item.offerPercentage;
-  return (
-    <TouchableOpacity
-      style={styles.offerCard}
-      onPress={() => navigation.navigate('ProductDetail', { product: item })}
-      activeOpacity={0.9}
-    >
-      <View style={styles.offerImageBox}>
-        {item.imageUrl || item.image ? (
-          <Image source={{ uri: item.imageUrl || item.image }} style={styles.offerImage} resizeMode="cover" />
-        ) : (
-          <Text style={styles.offerPlaceholder}>💧</Text>
-        )}
-        {discount && (
-          <View style={styles.discountBadge}>
-            <Text style={styles.discountText}>{discount}% OFF</Text>
-          </View>
-        )}
-      </View>
-      <View style={styles.offerInfo}>
-        <Text style={styles.offerName} numberOfLines={2}>{item.name}</Text>
-        <Text style={styles.offerPrice}>₹{item.offerPrice || item.price}</Text>
-        {item.originalPrice && (
-          <Text style={styles.offerOriginal}>₹{item.originalPrice}</Text>
-        )}
-      </View>
-    </TouchableOpacity>
-  );
-}
-
 function getTimeGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'Morning';
-  if (h < 17) return 'Afternoon';
+  const now = new Date();
+  const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const istMinutes = (utcMinutes + 330) % 1440;
+
+  if (istMinutes < 720) return 'Morning';
+  if (istMinutes < 1020) return 'Afternoon';
   return 'Evening';
 }
 
@@ -302,7 +242,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...SHADOW.sm,
   },
-  cartIcon: { fontSize: 20 },
   cartBadge: {
     position: 'absolute',
     top: -4,
@@ -333,7 +272,6 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     ...SHADOW.sm,
   },
-  searchIcon: { fontSize: 16 },
   searchPlaceholder: {
     fontSize: TYPOGRAPHY.base,
     fontFamily: 'DMSans_400Regular',
@@ -353,25 +291,7 @@ const styles = StyleSheet.create({
   bannerImage: {
     width: '100%',
     height: '100%',
-  },
-  bannerOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: SPACING.lg,
-    backgroundColor: 'rgba(26,10,14,0.55)',
-  },
-  bannerTitle: {
-    color: '#fff',
-    fontSize: TYPOGRAPHY.lg,
-    fontFamily: 'DMSans_700Bold',
-  },
-  bannerSubtitle: {
-    color: COLORS.goldLight,
-    fontSize: TYPOGRAPHY.sm,
-    fontFamily: 'DMSans_400Regular',
-    marginTop: 2,
+    objectFit: 'contain',
   },
   dotsRow: {
     flexDirection: 'row',
@@ -389,7 +309,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.burgundy,
     width: 18,
   },
-  // Fallback hero
   heroBanner: {
     marginHorizontal: SPACING.xl,
     height: 180,
@@ -410,9 +329,10 @@ const styles = StyleSheet.create({
     borderRadius: 80,
     backgroundColor: 'rgba(255,255,255,0.07)',
   },
-  heroText: {
-    fontSize: 72,
+  heroMark: {
     marginRight: SPACING.lg,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   heroContent: { flex: 1 },
   heroTitle: {
@@ -429,47 +349,28 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: RADIUS.full,
   },
+  heroBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   heroBtnText: {
     color: COLORS.textPrimary,
     fontSize: TYPOGRAPHY.sm,
     fontFamily: 'DMSans_700Bold',
   },
-  // Sections
   section: {
     paddingHorizontal: SPACING.xl,
     marginBottom: SPACING.xl,
   },
-  catScroll: {
-    marginHorizontal: -SPACING.xl,
-    paddingHorizontal: SPACING.xl,
+  productGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.md,
   },
-  catCard: {
-    alignItems: 'center',
-    marginRight: SPACING.md,
-    width: 72,
-  },
-  catIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-    ...SHADOW.sm,
-  },
-  catEmoji: { fontSize: 26 },
-  catLabel: {
-    fontSize: TYPOGRAPHY.xs,
-    fontFamily: 'DMSans_500Medium',
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-  },
-  // Offer card
-  offerCard: {
-    width: 160,
+  productCard: {
+    flex: 1,
+    minWidth: '47%',
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.lg,
     borderWidth: 1,
@@ -477,70 +378,49 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...SHADOW.sm,
   },
-  offerImageBox: {
-    width: '100%',
-    height: 130,
+  productImageWrap: {
+    height: 120,
     backgroundColor: COLORS.backgroundDark,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  offerImage: { width: '100%', height: '100%' },
-  offerPlaceholder: { fontSize: 50 },
-  discountBadge: {
+  productImage: {
+    width: '100%',
+    height: '100%',
+  },
+  productBadge: {
     position: 'absolute',
-    top: 8,
-    left: 8,
+    top: 10,
+    right: 10,
     backgroundColor: COLORS.burgundy,
+    borderRadius: RADIUS.full,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: RADIUS.full,
   },
-  discountText: {
+  productBadgeText: {
     color: '#fff',
     fontSize: TYPOGRAPHY.xs,
     fontFamily: 'DMSans_700Bold',
   },
-  offerInfo: {
+  productContent: {
     padding: SPACING.md,
+    gap: 4,
   },
-  offerName: {
+  productName: {
     fontSize: TYPOGRAPHY.sm,
-    fontFamily: 'DMSans_500Medium',
+    fontFamily: 'DMSans_700Bold',
     color: COLORS.textPrimary,
-    marginBottom: 4,
+    lineHeight: 18,
   },
-  offerPrice: {
+  productMeta: {
+    fontSize: TYPOGRAPHY.xs,
+    fontFamily: 'DMSans_400Regular',
+    color: COLORS.textMuted,
+  },
+  productPrice: {
+    marginTop: SPACING.xs,
     fontSize: TYPOGRAPHY.md,
     fontFamily: 'DMSans_700Bold',
     color: COLORS.burgundy,
-  },
-  offerOriginal: {
-    fontSize: TYPOGRAPHY.xs,
-    color: COLORS.textMuted,
-    textDecorationLine: 'line-through',
-    fontFamily: 'DMSans_400Regular',
-  },
-  // Quick grid
-  quickGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: SPACING.md,
-  },
-  quickCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    ...SHADOW.sm,
-  },
-  quickIcon: { fontSize: 28, marginBottom: 6 },
-  quickLabel: {
-    fontSize: TYPOGRAPHY.sm,
-    fontFamily: 'DMSans_500Medium',
-    color: COLORS.textSecondary,
   },
 });

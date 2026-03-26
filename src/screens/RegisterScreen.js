@@ -4,7 +4,7 @@ import {
   TouchableOpacity, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../theme';
-import { Button, Input } from '../components/UI';
+import { Button, Input, Icon } from '../components/UI';
 import { useAuth } from '../context/AuthContext';
 import { register } from '../api';
 
@@ -12,7 +12,7 @@ export default function RegisterScreen({ navigation }) {
   const { signIn } = useAuth();
   const [form, setForm] = useState({
     name: '', email: '', phoneNumber: '',
-    firmName: '', gstNumber: '', panNumber: '', address: '', password: '',
+    firmName: '', gstNumber: '', panNumber: '', address: '', city: '', state: '', pinCode: '', password: '',
   });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -26,6 +26,9 @@ export default function RegisterScreen({ navigation }) {
     if (!form.email || !/\S+@\S+\.\S+/.test(form.email)) e.email = 'Valid email required';
     if (!form.phoneNumber || form.phoneNumber.length < 10) e.phoneNumber = '10-digit phone required';
     if (!form.password || form.password.length < 6) e.password = 'Min 6 characters';
+    if (!form.city) e.city = 'City is required';
+    if (!form.state) e.state = 'State is required';
+    if (!form.pinCode || form.pinCode.length < 6) e.pinCode = 'Valid pin code required';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -34,7 +37,20 @@ export default function RegisterScreen({ navigation }) {
     if (!validate()) return;
     setLoading(true);
     try {
-      const res = await register({ ...form, email: form.email.trim().toLowerCase() });
+      const payload = {
+        name: form.name.trim(),
+        firmName: form.firmName.trim(),
+        phoneNumber: form.phoneNumber.trim(),
+        email: form.email.trim().toLowerCase(),
+        password: form.password,
+        gstNumber: form.gstNumber.trim(),
+        panNumber: form.panNumber.trim(),
+        address: form.address.trim(),
+        city: form.city.trim(),
+        state: form.state.trim(),
+        pinCode: form.pinCode.trim(),
+      };
+      const res = await register(payload);
       const { token, user, ...authData } = res.data;
       await signIn(token, user || authData);
     } catch (err) {
@@ -54,19 +70,17 @@ export default function RegisterScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Text style={styles.backIcon}>←</Text>
+            <Icon name="arrow-left" size={18} color="#fff" />
           </TouchableOpacity>
           <View>
             <Text style={styles.heading}>Create Account</Text>
-            <Text style={styles.subheading}>Start ordering pure water</Text>
+            <Text style={styles.subheading}>Create your Optima Polyplast account</Text>
           </View>
         </View>
 
         <View style={styles.form}>
-          {/* Personal Info Section */}
           <View style={styles.section}>
             <View style={styles.sectionLabel}>
               <View style={styles.sectionDot} />
@@ -86,15 +100,14 @@ export default function RegisterScreen({ navigation }) {
               onChangeText={set('password')}
               secureTextEntry={!showPass}
               error={errors.password}
-              rightIcon={
+              rightIcon={(
                 <TouchableOpacity onPress={() => setShowPass(!showPass)}>
-                  <Text style={styles.showHide}>{showPass ? 'Hide' : 'Show'}</Text>
+                  <Icon name={showPass ? 'eye-off' : 'eye'} size={18} color={COLORS.textMuted} />
                 </TouchableOpacity>
-              }
+              )}
             />
           </View>
 
-          {/* Business Info Section */}
           <View style={styles.section}>
             <View style={styles.sectionLabel}>
               <View style={[styles.sectionDot, { backgroundColor: COLORS.gold }]} />
@@ -110,6 +123,15 @@ export default function RegisterScreen({ navigation }) {
             <Input label="Address" placeholder="Street, City, State, PIN"
               value={form.address} onChangeText={set('address')}
               multiline numberOfLines={3} autoCapitalize="sentences" />
+            <Input label="City" placeholder="Ahmedabad"
+              value={form.city} onChangeText={set('city')}
+              autoCapitalize="words" error={errors.city} />
+            <Input label="State" placeholder="Gujarat"
+              value={form.state} onChangeText={set('state')}
+              autoCapitalize="words" error={errors.state} />
+            <Input label="Pin Code" placeholder="380001"
+              value={form.pinCode} onChangeText={set('pinCode')}
+              keyboardType="number-pad" error={errors.pinCode} />
           </View>
 
           <Button
@@ -154,10 +176,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 4,
   },
-  backIcon: {
-    color: '#fff',
-    fontSize: TYPOGRAPHY.xl,
-  },
   heading: {
     fontSize: TYPOGRAPHY.xxl,
     fontFamily: 'DMSans_700Bold',
@@ -201,11 +219,6 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_400Regular',
     color: COLORS.textMuted,
     fontSize: TYPOGRAPHY.sm,
-  },
-  showHide: {
-    fontSize: TYPOGRAPHY.sm,
-    fontFamily: 'DMSans_500Medium',
-    color: COLORS.burgundy,
   },
   loginBtn: {
     alignItems: 'center',

@@ -1,15 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
-  TextInput, Image, RefreshControl, ScrollView, Alert,
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  TextInput,
+  Image,
+  RefreshControl,
+  Alert,
+  ScrollView,
 } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
-import { LoadingSpinner, EmptyState } from '../components/UI';
-import { getProducts, addToCart } from '../api';
-import { useCart } from '../context/CartContext';
+import { LoadingSpinner, EmptyState, Icon, BrandMark } from '../components/UI';
+import { getProducts } from '../api';
 
-// Sort category sizes in a logical order
 const SIZE_ORDER = ['200ml', '250ml', '500ml', '700ml', '1L', '2L', '5L', '10L', '20L'];
+
 const sortCategories = (cats) =>
   [...cats].sort((a, b) => {
     const ai = SIZE_ORDER.findIndex((s) => s.toLowerCase() === a.toLowerCase());
@@ -20,37 +27,39 @@ const sortCategories = (cats) =>
     return ai - bi;
   });
 
+const formatCategoryLabel = (cat) => {
+  if (!cat) return '';
+  if (cat.toLowerCase() === 'all') return 'All';
+  if (/^\d+ml$/i.test(cat)) return `${cat.replace(/ml/i, '')} ml`;
+  if (/^\d+l$/i.test(cat)) return `${cat.replace(/l/i, '')} L`;
+  return cat;
+};
+
 export default function ProductsScreen({ navigation }) {
-  const [allProducts, setAllProducts] = useState([]);   // full list from API
-  const [filtered, setFiltered] = useState([]);          // displayed list
-  const [categories, setCategories] = useState(['All']); // derived from API
+  const [allProducts, setAllProducts] = useState([]);
+  const [filtered, setFiltered] = useState([]);
+  const [categories, setCategories] = useState(['All']);
   const [activeCategory, setActiveCategory] = useState('All');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [addingId, setAddingId] = useState(null);
-  const { refreshCart } = useCart();
 
-  // ── Fetch all products once ──────────────────────────────────────
   const fetchProducts = async () => {
     try {
       const res = await getProducts();
       const raw = res.data;
-      // API returns { products: [...] }
       const data =
         Array.isArray(raw) ? raw :
         Array.isArray(raw?.products) ? raw.products :
         Array.isArray(raw?.data) ? raw.data : [];
 
-      // Keep only active products
       const active = data.filter((p) => p.isActive !== false);
-      setAllProducts(active);
-
-      // Derive sorted unique categories
       const uniqueCats = [...new Set(active.map((p) => p.category).filter(Boolean))];
+
+      setAllProducts(active);
       setCategories(['All', ...sortCategories(uniqueCats)]);
     } catch (e) {
-      console.log('Products error:', e);
+      console.log('Products error:', e?.message || String(e));
       Alert.alert('Error', 'Could not load products. Please try again.');
     } finally {
       setLoading(false);
@@ -58,16 +67,15 @@ export default function ProductsScreen({ navigation }) {
     }
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
-  // ── Local filtering (no re-fetch on filter change) ───────────────
   useEffect(() => {
     let list = allProducts;
 
     if (activeCategory !== 'All') {
-      list = list.filter(
-        (p) => p.category?.toLowerCase() === activeCategory.toLowerCase()
-      );
+      list = list.filter((p) => p.category?.toLowerCase() === activeCategory.toLowerCase());
     }
 
     if (search.trim()) {
@@ -78,28 +86,7 @@ export default function ProductsScreen({ navigation }) {
     setFiltered(list);
   }, [allProducts, activeCategory, search]);
 
-  // ── Add to cart ──────────────────────────────────────────────────
-  const handleAddToCart = async (product) => {
-    const outOfStock = (product.boxes ?? 1) <= 0;
-    if (outOfStock) {
-      Alert.alert('Out of Stock', 'This product is currently unavailable.');
-      return;
-    }
-    setAddingId(product._id);
-    try {
-      await addToCart(product._id, 1, 1);
-      refreshCart();
-      Alert.alert('Added to Cart! 🛒', `${product.name} (${product.category}) added.`);
-    } catch (e) {
-      Alert.alert('Error', e.message);
-    } finally {
-      setAddingId(null);
-    }
-  };
-
-  // ── Product card ─────────────────────────────────────────────────
   const renderProduct = ({ item }) => {
-    const isAdding = addingId === item._id;
     const outOfStock = (item.boxes ?? 1) <= 0;
     const hasDiscount = item.originalPrice && item.price < item.originalPrice;
 
@@ -109,26 +96,19 @@ export default function ProductsScreen({ navigation }) {
         onPress={() => navigation.navigate('ProductDetail', { product: item })}
         activeOpacity={0.88}
       >
-        {/* Image */}
         <View style={styles.productImageBox}>
           {item.image ? (
-            <Image
-              source={{ uri: item.image }}
-              style={styles.productImage}
-              resizeMode="cover"
-            />
+            <Image source={{ uri: item.image }} style={styles.productImage} resizeMode="cover" />
           ) : (
-            <Text style={styles.productEmoji}>💧</Text>
+            <BrandMark size={56} />
           )}
 
-          {/* Category badge */}
           {item.category && (
             <View style={styles.categoryBadge}>
-              <Text style={styles.categoryBadgeText}>{item.category}</Text>
+              <Text style={styles.categoryBadgeText}>{formatCategoryLabel(item.category)}</Text>
             </View>
           )}
 
-          {/* Out-of-stock overlay */}
           {outOfStock && (
             <View style={styles.outOfStockOverlay}>
               <Text style={styles.outOfStockText}>Out of Stock</Text>
@@ -136,31 +116,20 @@ export default function ProductsScreen({ navigation }) {
           )}
         </View>
 
-        {/* Info */}
         <View style={styles.productInfo}>
           <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
-
-          <Text style={styles.bottlesPerBox}>
-            {item.bottlesPerBox} bottles/box
-          </Text>
+          <Text style={styles.bottlesPerBox}>{item.bottlesPerBox} bottles/box</Text>
 
           <View style={styles.productFooter}>
             <View>
-              <Text style={styles.productPrice}>₹{item.price}
+              <Text style={styles.productPrice}>
+                Rs.{item.price}
                 <Text style={styles.perBox}>/box</Text>
               </Text>
               {hasDiscount && (
-                <Text style={styles.productOriginalPrice}>₹{item.originalPrice}</Text>
+                <Text style={styles.productOriginalPrice}>Rs.{item.originalPrice}</Text>
               )}
             </View>
-
-            <TouchableOpacity
-              style={[styles.addBtn, (isAdding || outOfStock) && styles.addBtnDisabled]}
-              onPress={() => handleAddToCart(item)}
-              disabled={isAdding || outOfStock}
-            >
-              <Text style={styles.addBtnText}>{isAdding ? '…' : '+'}</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </TouchableOpacity>
@@ -169,20 +138,18 @@ export default function ProductsScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backIcon}>←</Text>
+          <Icon name="arrow-left" size={20} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Water Products</Text>
+        <Text style={styles.headerTitle}>Products</Text>
         <TouchableOpacity onPress={() => navigation.navigate('Cart')} style={styles.cartBtn}>
-          <Text style={{ fontSize: 22 }}>🛒</Text>
+          <Icon name="shopping-cart" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
 
-      {/* Search */}
       <View style={styles.searchContainer}>
-        <Text style={styles.searchIcon}>🔍</Text>
+        <Icon name="search" size={16} color={COLORS.textMuted} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search by name..."
@@ -192,62 +159,81 @@ export default function ProductsScreen({ navigation }) {
         />
         {search.length > 0 && (
           <TouchableOpacity onPress={() => setSearch('')}>
-            <Text style={styles.clearSearch}>✕</Text>
+            <Icon name="x" size={16} color={COLORS.textMuted} style={styles.clearSearch} />
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Category chips — derived from real API data */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterScroll}
-        contentContainerStyle={styles.filterContent}
-      >
-        {categories.map((cat) => (
-          <TouchableOpacity
-            key={cat}
-            style={[styles.filterChip, activeCategory === cat && styles.filterChipActive]}
-            onPress={() => setActiveCategory(cat)}
-          >
-            <Text style={[styles.filterChipText, activeCategory === cat && styles.filterChipTextActive]}>
-              {cat}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {/* Filter Chips */}
+      <View style={styles.filterWrapper}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterContent}
+          decelerationRate="fast"
+        >
+          {categories.map((cat) => {
+            const isActive = activeCategory === cat;
+            const label = formatCategoryLabel(cat);
+            return (
+              <TouchableOpacity
+                key={cat}
+                style={[
+                  styles.filterChip,
+                  isActive && styles.filterChipActive,
+                ]}
+                onPress={() => setActiveCategory(cat)}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[
+                    styles.filterChipText,
+                    isActive && styles.filterChipTextActive,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
 
-      {/* Results count */}
       <Text style={styles.resultsCount}>
         {filtered.length} {filtered.length === 1 ? 'product' : 'products'}
-        {activeCategory !== 'All' ? ` · ${activeCategory}` : ''}
+        {activeCategory !== 'All' ? ` • ${formatCategoryLabel(activeCategory)}` : ''}
       </Text>
 
-      {/* List */}
       {loading ? (
         <LoadingSpinner text="Loading products..." />
       ) : filtered.length === 0 ? (
         <EmptyState
-          emoji="🔍"
+          icon={<Icon name="search" size={52} color={COLORS.burgundy} style={{ marginBottom: SPACING.lg }} />}
           title="No products found"
           subtitle="Try a different size or clear your search"
           action="Clear Filters"
-          onAction={() => { setSearch(''); setActiveCategory('All'); }}
+          onAction={() => {
+            setSearch('');
+            setActiveCategory('All');
+          }}
         />
       ) : (
         <FlatList
           data={filtered}
           numColumns={2}
-          keyExtractor={(item) => item._id}
+          keyExtractor={(item) => item._id || item.id || item.name}
           renderItem={renderProduct}
           contentContainerStyle={styles.listContent}
-          columnWrapperStyle={{ gap: SPACING.md }}
-          ItemSeparatorComponent={() => <View style={{ height: SPACING.md }} />}
+          columnWrapperStyle={styles.columnWrapper}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => { setRefreshing(true); fetchProducts(); }}
+              onRefresh={() => {
+                setRefreshing(true);
+                fetchProducts();
+              }}
               tintColor={COLORS.burgundy}
             />
           }
@@ -258,9 +244,10 @@ export default function ProductsScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-
-  // ── Header ──────────────────────────────────────────────────────
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -278,7 +265,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: SPACING.md,
   },
-  backIcon: { fontSize: TYPOGRAPHY.lg, color: '#fff' },
   headerTitle: {
     flex: 1,
     fontSize: TYPOGRAPHY.xl,
@@ -291,81 +277,94 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  // ── Search ──────────────────────────────────────────────────────
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
     marginHorizontal: SPACING.lg,
     marginTop: SPACING.md,
-    marginBottom: SPACING.sm,
+    marginBottom: SPACING.md,
     borderRadius: RADIUS.xl,
     paddingHorizontal: SPACING.md,
     borderWidth: 1.5,
     borderColor: COLORS.border,
     ...SHADOW.sm,
   },
-  searchIcon: { fontSize: 16, marginRight: SPACING.sm },
   searchInput: {
     flex: 1,
     paddingVertical: 11,
     fontSize: TYPOGRAPHY.base,
     color: COLORS.textPrimary,
     fontFamily: 'DMSans_400Regular',
+    marginLeft: SPACING.sm,
   },
-  clearSearch: { fontSize: 14, color: COLORS.textMuted, padding: 4 },
-
-  // ── Category chips ───────────────────────────────────────────────
-  filterScroll: { maxHeight: 52 },
+  clearSearch: {
+    padding: 4,
+  },
+  filterWrapper: {
+    marginTop: SPACING.xs,
+    marginBottom: SPACING.xs,
+  },
   filterContent: {
     paddingHorizontal: SPACING.lg,
-    paddingBottom: SPACING.sm,
+    paddingVertical: SPACING.md,
     gap: SPACING.sm,
-    alignItems: 'center',
   },
   filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 70,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   filterChipActive: {
     backgroundColor: COLORS.burgundy,
     borderColor: COLORS.burgundy,
   },
   filterChipText: {
-    fontSize: TYPOGRAPHY.sm,
+    fontSize: 14,
     fontFamily: 'DMSans_500Medium',
-    color: COLORS.textSecondary,
+    color: '#495057',
+    textAlign: 'center',
+    lineHeight: 18,
   },
-  filterChipTextActive: { color: '#fff' },
-
-  // ── Results label ────────────────────────────────────────────────
+  filterChipTextActive: {
+    color: '#fff',
+  },
   resultsCount: {
     fontSize: TYPOGRAPHY.sm,
     fontFamily: 'DMSans_400Regular',
     color: COLORS.textMuted,
     paddingHorizontal: SPACING.xl,
     marginBottom: SPACING.sm,
+    marginTop: SPACING.xs,
   },
-
-  // ── List ─────────────────────────────────────────────────────────
   listContent: {
     paddingHorizontal: SPACING.lg,
     paddingBottom: SPACING.xxxl,
+    paddingTop: SPACING.sm,
   },
-
-  // ── Product card ─────────────────────────────────────────────────
+  columnWrapper: {
+    justifyContent: 'space-between',
+    gap: SPACING.md,
+  },
   productCard: {
     flex: 1,
     backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.xl,   // rounded-2xl (16px)
+    borderRadius: RADIUS.xl,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: COLORS.border,
+    marginBottom: SPACING.md,
     ...SHADOW.sm,
   },
   productImageBox: {
@@ -373,11 +372,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.backgroundDark,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
-  productImage: { width: '100%', height: '100%' },
-  productEmoji: { fontSize: 52 },
-
-  // Category badge — top-right corner over image
+  productImage: {
+    width: '100%',
+    height: '100%',
+  },
   categoryBadge: {
     position: 'absolute',
     top: 8,
@@ -392,8 +392,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: 'DMSans_700Bold',
   },
-
-  // Out-of-stock dim
   outOfStockOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.50)',
@@ -406,9 +404,9 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_700Bold',
     letterSpacing: 0.5,
   },
-
-  // Card body
-  productInfo: { padding: SPACING.sm },
+  productInfo: {
+    padding: SPACING.sm,
+  },
   productName: {
     fontSize: TYPOGRAPHY.sm,
     fontFamily: 'DMSans_700Bold',
@@ -442,21 +440,5 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     textDecorationLine: 'line-through',
     fontFamily: 'DMSans_400Regular',
-  },
-  addBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: COLORS.burgundy,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addBtnDisabled: { opacity: 0.4 },
-  addBtnText: {
-    color: '#fff',
-    fontSize: 22,
-    fontFamily: 'DMSans_400Regular',
-    lineHeight: 32,
-    textAlign: 'center',
   },
 });
