@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Cellar - Fine Wines & Spirits",
-    "slug": "cellar-wines",
+    "name": "Optima - Premium Water Bottles",
+    "slug": "optima-water",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,10 +14,10 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.yourcompany.cellarwines"
+      "bundleIdentifier": "com.optimapolyplast.water"
     },
     "android": {
-      "package": "com.yourcompany.cellarwines",
+      "package": "com.optimapolyplast.water",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",

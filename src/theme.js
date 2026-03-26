@@ -1,15 +1,16 @@
 // ─── Design Tokens ──────────────────────────────────────────────────────────
-// Aesthetic: Rewa Water — clean teal, indigo, cyan on light airy background
+// Brand: Optima Polyplast — Premium Water Bottles
+// Aesthetic: Clean teal, indigo, cyan on light airy background
 // Fonts: Use Inter/System Sans (body) + DM Sans (clean body)
 
 export const COLORS = {
-  // Primary palette  (teal-500 brand)
-  burgundy: '#14b8a6',        // teal-500  — primary buttons, active states
-  burgundyLight: '#0d9488',   // teal-600  — hover / pressed
-  burgundyDark: '#164e63',    // cyan-900  — top nav / header backgrounds
+  // Primary palette — Optima Teal (teal-500 brand)
+  burgundy: '#14b8a6',        // teal-500 — primary buttons, active states, Optima brand color
+  burgundyLight: '#0d9488',   // teal-600 — hover / pressed
+  burgundyDark: '#164e63',    // cyan-900 — top nav / header backgrounds
   burgundyMuted: '#14b8a622', // teal-500 at 13 % opacity
 
-  // Accent  (indigo-600)
+  // Accent — Optima Indigo (indigo-600)
   gold: '#4f46e5',            // indigo-600 — secondary brand, icons
   goldLight: '#818cf8',       // indigo-400 — light accent text
   goldMuted: '#4f46e522',     // indigo at 13 % opacity

@@ -1,4 +1,4 @@
-# 🍷 Cellar — Fine Wines & Spirits App
+# 💧 Optima — Premium Water Bottles App
 ### React Native (Expo) — Complete Setup & Play Store Guide
 
 ---
@@ -6,7 +6,7 @@
 ## Project Structure
 
 ```
-MyWineApp/
+OptimalWaterApp/
 ├── App.js                          ← Root: fonts, providers, error boundary
 ├── app.json                        ← Expo config (name, package id, permissions)
 ├── eas.json                        ← EAS Build config (APK / AAB)
