@@ -21,6 +21,8 @@
     "android": {
       "package": "com.optimapolyplast.water",
       "versionCode": 1,
+      "targetSdkVersion": 35,
+      "compileSdkVersion": 35,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#f0fdff"
