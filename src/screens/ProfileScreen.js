@@ -15,6 +15,7 @@ export default function ProfileScreen({ navigation }) {
   const [changingPass, setChangingPass] = useState(false);
   const [form, setForm] = useState({});
   const [passForm, setPassForm] = useState({ current: '', newPass: '', confirm: '' });
+  const [showPass, setShowPass] = useState({ current: false, new: false, confirm: false });
   const [loading, setLoading] = useState(false);
   const [passLoading, setPassLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -28,7 +29,12 @@ export default function ProfileScreen({ navigation }) {
       const cd = data?.customerDetails || {};
       const addr = cd.address || {};
 
-      setProfile({ ...data, firmName: cd.firmName || '', addressObj: addr });
+      setProfile({
+        ...data,
+        userCode: data.userCode || cd.userCode || '',
+        firmName: cd.firmName || '',
+        addressObj: addr
+      });
       setForm({
         name: data.name || '',
         phoneNumber: data.phoneNumber || '',
@@ -51,13 +57,21 @@ export default function ProfileScreen({ navigation }) {
       setErrors({ name: 'Name is required' });
       return;
     }
+    if (!form.phoneNumber || !/^\d{10}$/.test(form.phoneNumber)) {
+      setErrors({ phoneNumber: 'Exactly 10 digits required' });
+      return;
+    }
+    if (form.pinCode && !/^\d{6}$/.test(form.pinCode)) {
+      setErrors({ pinCode: 'Exactly 6 digits required' });
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {
         name: form.name,
         phoneNumber: form.phoneNumber,
         customerDetails: {
-          firmName: form.firmName,
           address: {
             address: form.addressLine,
             city: form.city,
@@ -109,7 +123,12 @@ export default function ProfileScreen({ navigation }) {
       setChangingPass(false);
       Alert.alert('Done!', 'Password changed successfully.');
     } catch (e) {
-      Alert.alert('Failed', e.message);
+      const msg = e.message?.toLowerCase();
+      if (msg?.includes('wrong') || msg?.includes('incorrect') || msg?.includes('mismatch')) {
+        Alert.alert('Update Failed', 'Current password is incorrect');
+      } else {
+        Alert.alert('Failed', e.message);
+      }
     } finally {
       setPassLoading(false);
     }
@@ -191,8 +210,8 @@ export default function ProfileScreen({ navigation }) {
               <Input label="Full Name" value={form.name} onChangeText={set('name')}
                 autoCapitalize="words" error={errors.name} />
               <Input label="Phone Number" value={form.phoneNumber} onChangeText={set('phoneNumber')}
-                keyboardType="phone-pad" />
-              <Input label="Firm / Company" value={form.firmName} onChangeText={set('firmName')}
+                keyboardType="phone-pad" error={errors.phoneNumber} maxLength={10} />
+              <Input label="Firm / Company" value={form.firmName} editable={false}
                 autoCapitalize="words" />
               <Input label="Street / House No." value={form.addressLine} onChangeText={set('addressLine')}
                 autoCapitalize="sentences" />
@@ -201,7 +220,7 @@ export default function ProfileScreen({ navigation }) {
               <Input label="State" value={form.state} onChangeText={set('state')}
                 autoCapitalize="words" />
               <Input label="Pin Code" value={form.pinCode} onChangeText={set('pinCode')}
-                keyboardType="number-pad" />
+                keyboardType="number-pad" error={errors.pinCode} maxLength={6} />
               <Button title="Save Changes" onPress={handleSaveProfile} loading={loading} />
             </>
           ) : (
@@ -246,12 +265,42 @@ export default function ProfileScreen({ navigation }) {
 
           {changingPass && (
             <>
-              <Input label="Current Password" placeholder="Enter current password"
-                value={passForm.current} onChangeText={setPass('current')} secureTextEntry />
-              <Input label="New Password" placeholder="Min. 6 characters"
-                value={passForm.newPass} onChangeText={setPass('newPass')} secureTextEntry />
-              <Input label="Confirm New Password" placeholder="Re-enter new password"
-                value={passForm.confirm} onChangeText={setPass('confirm')} secureTextEntry />
+              <Input
+                label="Current Password"
+                placeholder="Enter current password"
+                value={passForm.current}
+                onChangeText={setPass('current')}
+                secureTextEntry={!showPass.current}
+                rightIcon={(
+                  <TouchableOpacity onPress={() => setShowPass(s => ({ ...s, current: !s.current }))}>
+                    <Icon name={showPass.current ? 'eye-off' : 'eye'} size={18} color={COLORS.textMuted} />
+                  </TouchableOpacity>
+                )}
+              />
+              <Input
+                label="New Password"
+                placeholder="Min. 6 characters"
+                value={passForm.newPass}
+                onChangeText={setPass('newPass')}
+                secureTextEntry={!showPass.new}
+                rightIcon={(
+                  <TouchableOpacity onPress={() => setShowPass(s => ({ ...s, new: !s.new }))}>
+                    <Icon name={showPass.new ? 'eye-off' : 'eye'} size={18} color={COLORS.textMuted} />
+                  </TouchableOpacity>
+                )}
+              />
+              <Input
+                label="Confirm New Password"
+                placeholder="Re-enter new password"
+                value={passForm.confirm}
+                onChangeText={setPass('confirm')}
+                secureTextEntry={!showPass.confirm}
+                rightIcon={(
+                  <TouchableOpacity onPress={() => setShowPass(s => ({ ...s, confirm: !s.confirm }))}>
+                    <Icon name={showPass.confirm ? 'eye-off' : 'eye'} size={18} color={COLORS.textMuted} />
+                  </TouchableOpacity>
+                )}
+              />
               <Button title="Update Password" onPress={handleChangePassword} loading={passLoading} />
             </>
           )}
@@ -303,7 +352,7 @@ const styles = StyleSheet.create({
   profileEmail: {
     fontSize: TYPOGRAPHY.sm,
     fontFamily: 'DMSans_400Regular',
-    color: COLORS.goldLight,
+    color: COLORS.cream,
     marginTop: 4,
   },
   firmBadge: {

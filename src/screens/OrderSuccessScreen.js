@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 import { Button, Icon } from '../components/UI';
+import { useCart } from '../context/CartContext';
 
 function ProgressHeader({ onDone }) {
   return (
@@ -33,11 +34,13 @@ function ProgressHeader({ onDone }) {
 }
 
 export default function OrderSuccessScreen({ navigation, route }) {
-  const { orderId, total, itemCount, paymentMode } = route.params || {};
+  const { orderId, total, itemCount, paymentMode, remainingAmount } = route.params || {};
+  const { refreshCart } = useCart();
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    refreshCart();
     Animated.sequence([
       Animated.spring(scaleAnim, { toValue: 1, tension: 80, friction: 7, useNativeDriver: true }),
       Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
@@ -80,6 +83,14 @@ export default function OrderSuccessScreen({ navigation, route }) {
               <Text style={styles.detailLabel}>Total</Text>
               <Text style={[styles.detailValue, styles.totalValue]}>Rs.{total?.toLocaleString()}</Text>
             </View>
+            {remainingAmount !== undefined && (
+              <View style={[styles.detailRow, { marginTop: SPACING.xs }]}>
+                <Text style={styles.detailLabel}>Remaining Balance</Text>
+                <Text style={[styles.detailValue, { color: COLORS.error }]}>
+                  Rs.{remainingAmount.toLocaleString()}
+                </Text>
+              </View>
+            )}
           </View>
 
           <Button

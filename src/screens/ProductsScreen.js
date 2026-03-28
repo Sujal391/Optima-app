@@ -87,7 +87,7 @@ export default function ProductsScreen({ navigation }) {
   }, [allProducts, activeCategory, search]);
 
   const renderProduct = ({ item }) => {
-    const outOfStock = (item.boxes ?? 1) <= 0;
+    // const outOfStock = (item.boxes ?? 1) <= 0;
     const hasDiscount = item.originalPrice && item.price < item.originalPrice;
 
     return (
@@ -109,11 +109,11 @@ export default function ProductsScreen({ navigation }) {
             </View>
           )}
 
-          {outOfStock && (
+          {/* {outOfStock && (
             <View style={styles.outOfStockOverlay}>
               <Text style={styles.outOfStockText}>Out of Stock</Text>
             </View>
-          )}
+          )} */}
         </View>
 
         <View style={styles.productInfo}>

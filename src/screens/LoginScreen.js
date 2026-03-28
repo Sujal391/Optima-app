@@ -18,10 +18,9 @@ export default function LoginScreen({ navigation }) {
 
   const validate = () => {
     const e = {};
-    if (!email) e.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'Enter a valid email';
+    if (!email) e.email = 'Email/User code is required';
     if (!password) e.password = 'Password is required';
-    else if (password.length < 6) e.password = 'At least 6 characters';
+    else if (password.length < 6) e.password = 'Password must be at least 6 characters';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -67,11 +66,11 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.subheading}>Sign in to your account</Text>
 
           <Input
-            label="Email Address"
-            placeholder="you@example.com"
+            label="Email or User Code"
+            placeholder="e.g. USER-000021"
             value={email}
             onChangeText={setEmail}
-            keyboardType="email-address"
+            keyboardType="default"
             autoCapitalize="none"
             error={errors.email}
             style={{ marginTop: SPACING.xl }}

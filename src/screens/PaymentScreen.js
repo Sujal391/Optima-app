@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, Image, KeyboardAvoidingView, Platform,
+  Alert, Image, KeyboardAvoidingView, Platform, Modal,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 import { Button, Input, Divider, Icon } from '../components/UI';
-import { submitPayment } from '../api';
+import { submitPayment, createOrder } from '../api';
+import { useCart } from '../context/CartContext';
 
 function ProgressHeader({ currentStep, onBack }) {
   const handleStepPress = (stepIndex) => {
@@ -53,7 +54,9 @@ function ProgressHeader({ currentStep, onBack }) {
 }
 
 export default function PaymentScreen({ navigation, route }) {
-  const { order, total, items } = route.params || {};
+  const { order: initialOrder, total, items, subtotal, totalBoxes, gst, shippingAddress } = route.params || {};
+  const { refreshCart } = useCart();
+  const [order, setOrder] = useState(initialOrder);
   const orderId = order?._id || order?.id || order?.orderId || order?.paymentId;
 
   console.log('Order object received:', order);
@@ -62,9 +65,14 @@ export default function PaymentScreen({ navigation, route }) {
   const [paymentId, setPaymentId] = useState(order?.paymentId || order?.payment?._id || '');
   const [referenceId, setReferenceId] = useState('');
   const [submittedAmount, setSubmittedAmount] = useState(String(total || ''));
+  const [paymentType, setPaymentType] = useState('partial'); // Defaulting to partial as per image
+  const [paymentMode, setPaymentMode] = useState('online'); // Defaulting to online as per image
   const [screenshot, setScreenshot] = useState(null);
+  const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isTermsAccepted, setIsTermsAccepted] = useState(false);
 
   const handleBackNavigation = (targetStep) => {
     if (targetStep <= 0) {
@@ -77,7 +85,9 @@ export default function PaymentScreen({ navigation, route }) {
   const validate = () => {
     const nextErrors = {};
     if (!paymentId.trim()) nextErrors.paymentId = 'Payment ID is required';
-    if (!referenceId.trim()) nextErrors.referenceId = 'Reference ID is required';
+    if (!referenceId.trim() || referenceId.trim().length < 12) {
+      nextErrors.referenceId = 'Reference ID must be at least 12 characters';
+    }
     if (!submittedAmount.trim()) nextErrors.submittedAmount = 'Submitted amount is required';
     if (!screenshot) nextErrors.screenshot = 'Payment screenshot is required';
     setErrors(nextErrors);
@@ -102,16 +112,28 @@ export default function PaymentScreen({ navigation, route }) {
 
   const handleContinue = async () => {
     if (!validate()) return;
+    setShowConfirmModal(true);
+  };
 
+  const processPayment = async () => {
+    setShowConfirmModal(false);
     setLoading(true);
     try {
-      // Backend requires: paymentId, referenceId, submittedAmount, screenshot
+      const currentPaymentId = order?.paymentId || order?.payment?._id;
+
+      if (!currentPaymentId) {
+        throw new Error('Payment ID not found. Please try again.');
+      }
+
+      // Submit payment details
       const formData = new FormData();
-      formData.append('paymentId', paymentId.trim());
+      formData.append('paymentId', currentPaymentId);
       formData.append('referenceId', referenceId.trim());
       formData.append('submittedAmount', submittedAmount.trim());
+      formData.append('paymentType', paymentType.trim());
+      formData.append('paymentMode', 'online'); 
+      formData.append('paymentMethod', 'online'); 
 
-      // Derive the real MIME type so the server accepts the file
       const mimeType = screenshot.mimeType || screenshot.type || 'image/jpeg';
       const ext = mimeType.split('/')[1] || 'jpg';
       formData.append('screenshot', {
@@ -120,21 +142,25 @@ export default function PaymentScreen({ navigation, route }) {
         name: screenshot.fileName || `payment_${Date.now()}.${ext}`,
       });
 
+      console.log('[API Call] submitPayment being called. Payment ID:', currentPaymentId);
+
       const res = await submitPayment(formData);
-      console.log('Payment submitted successfully:', res);
+      console.log('[API Success] submitPayment called successfully.');
+      
+      const paymentData = res.data?.payment || {};
+      const remainingAmount = paymentData.remainingAmount;
 
       navigation.replace('OrderSuccess', {
-        order,
+        order: order,
         orderId,
         total,
+        remainingAmount,
         itemCount: items?.length || 0,
         paymentMode: 'Online',
       });
     } catch (e) {
-      console.error('Payment error message:', e.message);
-      console.error('Payment error status:', e.status);
-      console.error('Payment error data:', e.data);
-      console.error('Full error:', e);
+      console.error('[API Error] submitPayment failed. Reason:', e.message || 'Unknown error');
+      console.error('Full Error Object:', e);
       Alert.alert('Payment Failed', e.message || 'Could not submit payment details.');
     } finally {
       setLoading(false);
@@ -178,6 +204,49 @@ export default function PaymentScreen({ navigation, route }) {
             onChangeText={setReferenceId}
             autoCapitalize="none"
             error={errors.referenceId}
+          />
+          <TouchableOpacity 
+            activeOpacity={1}
+            onPress={() => setShowTypeDropdown(!showTypeDropdown)}
+          >
+            <Input
+              label="Payment Type"
+              placeholder="Select Type"
+              value={paymentType.charAt(0).toUpperCase() + paymentType.slice(1)}
+              editable={false}
+              rightIcon={(
+                <Icon name={showTypeDropdown ? 'chevron-up' : 'chevron-down'} size={18} color={COLORS.textMuted} />
+              )}
+            />
+          </TouchableOpacity>
+
+          {showTypeDropdown && (
+            <View style={styles.dropdownMenu}>
+              {['partial', 'completed'].map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={styles.dropdownOption}
+                  onPress={() => {
+                    setPaymentType(type);
+                    setShowTypeDropdown(false);
+                  }}
+                >
+                  <Text style={[
+                    styles.dropdownText,
+                    paymentType === type && { color: COLORS.burgundy, fontFamily: 'DMSans_700Bold' }
+                  ]}>
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </Text>
+                  {paymentType === type && <Icon name="check" size={16} color={COLORS.burgundy} />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          <Input
+            label="Payment Mode"
+            value={paymentMode.charAt(0).toUpperCase() + paymentMode.slice(1)}
+            editable={false}
           />
           <Input
             label="Submitted Amount"
@@ -230,6 +299,52 @@ export default function PaymentScreen({ navigation, route }) {
           size="lg"
           style={{ marginHorizontal: SPACING.lg, marginBottom: SPACING.xxxl }}
         />
+
+        <Modal
+          visible={showConfirmModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowConfirmModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Icon name="info" size={24} color={COLORS.burgundy} />
+                <Text style={styles.modalTitle}>Confirm Order</Text>
+              </View>
+              
+              <Text style={styles.modalMessage}>
+                Please Note: Delivery charges are not included in the total and must be settled directly at the time of delivery.
+              </Text>
+
+              <TouchableOpacity 
+                style={styles.checkboxRow}
+                onPress={() => setIsTermsAccepted(!isTermsAccepted)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.checkbox, isTermsAccepted && styles.checkboxActive]}>
+                  {isTermsAccepted && <Icon name="check" size={14} color="#fff" />}
+                </View>
+                <Text style={styles.checkboxLabel}>I agree to the Terms & Conditions</Text>
+              </TouchableOpacity>
+
+              <View style={styles.modalActions}>
+                <Button 
+                  title="Cancel" 
+                  variant="outline" 
+                  onPress={() => setShowConfirmModal(false)}
+                  style={{ flex: 1 }}
+                />
+                <Button 
+                  title="Confirm" 
+                  onPress={processPayment}
+                  disabled={!isTermsAccepted}
+                  style={{ flex: 1.5 }}
+                />
+              </View>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -448,5 +563,89 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.xl,
     fontFamily: 'DMSans_700Bold',
     color: COLORS.burgundy,
+  },
+  dropdownMenu: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    marginTop: -SPACING.sm,
+    marginBottom: SPACING.md,
+    overflow: 'hidden',
+    ...SHADOW.sm,
+  },
+  dropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: SPACING.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  dropdownText: {
+    fontSize: TYPOGRAPHY.base,
+    fontFamily: 'DMSans_400Regular',
+    color: COLORS.textPrimary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: SPACING.xl,
+  },
+  modalContent: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.xl,
+    padding: SPACING.xl,
+    ...SHADOW.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  modalTitle: {
+    fontSize: TYPOGRAPHY.lg,
+    fontFamily: 'DMSans_700Bold',
+    color: COLORS.textPrimary,
+  },
+  modalMessage: {
+    fontSize: TYPOGRAPHY.base,
+    fontFamily: 'DMSans_400Regular',
+    color: COLORS.textSecondary,
+    lineHeight: 22,
+    marginBottom: SPACING.lg,
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SPACING.xl,
+    backgroundColor: COLORS.backgroundDark,
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: COLORS.burgundy,
+    marginRight: SPACING.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxActive: {
+    backgroundColor: COLORS.burgundy,
+  },
+  checkboxLabel: {
+    fontSize: TYPOGRAPHY.sm,
+    fontFamily: 'DMSans_500Medium',
+    color: COLORS.textPrimary,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: SPACING.md,
   },
 });

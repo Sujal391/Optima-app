@@ -12,7 +12,7 @@ const normalizeProfile = (data, fallback = {}) => {
   return {
     ...fallback,
     ...user,
-    userCode: user.userCode || fallback.userCode || '',
+    userCode: user.userCode || customerDetails.userCode || fallback.userCode || '',
     role: user.role || fallback.role || 'user',
     photo: user.photo ?? fallback.photo ?? null,
     firmName: customerDetails.firmName || user.firmName || fallback.firmName || '',

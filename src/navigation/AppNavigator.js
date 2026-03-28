@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -151,10 +151,12 @@ function OrderDetailScreen({ navigation, route }) {
   return (
     <View style={{ flex: 1, backgroundColor: COLORS.background }}>
       <View style={detailStyles.header}>
-        <Text onPress={() => navigation.goBack()} style={detailStyles.back}>←</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={detailStyles.backBtn}>
+          <Icon name="arrow-left" size={18} color="#fff" />
+        </TouchableOpacity>
         <Text style={detailStyles.title}>Order Details</Text>
       </View>
-      <View style={{ padding: SPACING.lg }}>
+      <ScrollView contentContainerStyle={{ padding: SPACING.lg }} showsVerticalScrollIndicator={false}>
         <View style={[detailStyles.statusBox, { backgroundColor: cfg.color }]}>
           <Text style={[detailStyles.statusText, { color: cfg.text }]}>{cfg.label}</Text>
         </View>
@@ -163,7 +165,27 @@ function OrderDetailScreen({ navigation, route }) {
           Order #{(order._id || order.id)?.slice(-8)?.toUpperCase()}
         </Text>
         {!!date && <Text style={detailStyles.orderDate}>{date}</Text>}
-        <Text style={detailStyles.total}>Total: Rs.{order.totalAmount?.toLocaleString()}</Text>
+        <Text style={detailStyles.total}>Total: Rs.{order.paymentDetails?.amount?.toLocaleString()}</Text>
+
+        {order.paymentDetails && (
+          <View style={detailStyles.amountCard}>
+            <View style={detailStyles.amountRow}>
+              <View style={detailStyles.amountCol}>
+                <Text style={detailStyles.infoLabel}>Paid Amount</Text>
+                <Text style={[detailStyles.infoValue, { color: COLORS.success, fontFamily: 'DMSans_700Bold' }]}>
+                  Rs.{order.paymentDetails.paidAmount?.toLocaleString()}
+                </Text>
+              </View>
+              <View style={[detailStyles.amountDivider, { height: '100%' }]} />
+              <View style={detailStyles.amountCol}>
+                <Text style={detailStyles.infoLabel}>Remaining</Text>
+                <Text style={[detailStyles.infoValue, { color: COLORS.error, fontFamily: 'DMSans_700Bold' }]}>
+                  Rs.{(order.paymentDetails.amount - order.paymentDetails.paidAmount)?.toLocaleString()}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {!!order.paymentStatus && (
           <View style={detailStyles.infoBox}>
@@ -196,14 +218,41 @@ function OrderDetailScreen({ navigation, route }) {
                 : `x${p.quantity || 1}`;
               return (
                 <Text key={i} style={detailStyles.productLine}>
-                  • {product.name || 'Product'}
+                  • {product.name || 'Product'} -
                   {product.category ? ` (${product.category})` : ''} {qty}
                 </Text>
               );
             })}
           </View>
         )}
-      </View>
+
+        {order.paymentDetails?.paymentHistory?.length > 0 && (
+          <View style={detailStyles.infoBox}>
+            <Text style={detailStyles.infoLabel}>Payment History</Text>
+            {order.paymentDetails.paymentHistory.map((h, i) => (
+              <View key={i} style={[detailStyles.historyItem, i > 0 && detailStyles.historySeparator]}>
+                <View style={detailStyles.historyRow}>
+                  <Text style={detailStyles.historyDate}>
+                    {h.submissionDate ? new Date(h.submissionDate).toLocaleDateString() : 'N/A'}
+                  </Text>
+                  <Text style={detailStyles.historyAmount}>Rs.{h.submittedAmount?.toLocaleString()}</Text>
+                </View>
+                <View style={detailStyles.historyRow}>
+                  <View style={detailStyles.historyMeta}>
+                    <Text style={detailStyles.historyMode}>{h.paymentMode?.toUpperCase()}</Text>
+                    {!!h.referenceId && <Text style={detailStyles.historyRef}> • {h.referenceId}</Text>}
+                  </View>
+                  <View style={[detailStyles.statusBadge, { backgroundColor: h.status === 'verified' ? COLORS.successLight : COLORS.backgroundDark }]}>
+                    <Text style={[detailStyles.statusBadgeText, { color: h.status === 'verified' ? COLORS.success : COLORS.textMuted }]}>
+                      {h.status?.toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -490,5 +539,81 @@ const detailStyles = StyleSheet.create({
     fontFamily: 'DMSans_400Regular',
     marginTop: 4,
     lineHeight: 22,
+  },
+  backBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  amountCard: {
+    marginTop: SPACING.md,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+  },
+  amountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  amountCol: {
+    flex: 1,
+  },
+  amountDivider: {
+    width: 1,
+    backgroundColor: COLORS.border,
+    marginHorizontal: SPACING.md,
+  },
+  historyItem: {
+    paddingVertical: SPACING.sm,
+  },
+  historySeparator: {
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+    marginTop: SPACING.xs,
+    paddingTop: SPACING.sm,
+  },
+  historyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  historyDate: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    fontFamily: 'DMSans_400Regular',
+  },
+  historyAmount: {
+    fontSize: 14,
+    color: COLORS.textPrimary,
+    fontFamily: 'DMSans_700Bold',
+  },
+  historyMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  historyMode: {
+    fontSize: 11,
+    color: COLORS.burgundy,
+    fontFamily: 'DMSans_700Bold',
+  },
+  historyRef: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    fontFamily: 'DMSans_400Regular',
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontFamily: 'DMSans_700Bold',
   },
 });

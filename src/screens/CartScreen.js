@@ -73,10 +73,11 @@ export default function CartScreen({ navigation }) {
     ]);
   };
 
-  const subtotal = cartData?.total ?? items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
-  const deliveryFee = subtotal > 2000 ? 0 : 99;
-  const total = subtotal + deliveryFee;
-  const totalBoxes = items.reduce((sum, item) => sum + Number(item.boxes || item.quantity || 0), 0);
+  const subtotal = cartData?.amount ?? items.reduce((sum, item) => sum + (item.total || 0), 0);
+  const gst = cartData?.gst || 0;
+  const deliveryFee = 0; // Backend handles totals now, keeping it 0 unless specified
+  const total = cartData?.totalAmount ?? (subtotal + gst + deliveryFee);
+  const totalBoxes = cartData?.totalItems ?? items.reduce((sum, item) => sum + Number(item.boxes || 0), 0);
   const hasMinimumBoxes = totalBoxes >= MIN_TOTAL_BOXES;
   const boxesShort = Math.max(MIN_TOTAL_BOXES - totalBoxes, 0);
 
@@ -89,14 +90,14 @@ export default function CartScreen({ navigation }) {
       return;
     }
 
-    navigation.navigate('Checkout', { items, total, subtotal, totalBoxes });
+    navigation.navigate('Checkout', { items, total, subtotal, totalBoxes, gst });
   };
 
   const renderItem = ({ item }) => {
     const product = item.product || {};
-    const price = product.price || 0;
-    const boxes = item.boxes || item.quantity || 1;
-    const itemSubtotal = item.subtotal ?? price * boxes;
+    const price = item.price || product.price || 0;
+    const boxes = item.boxes || 1;
+    const itemSubtotal = item.total ?? price * boxes;
     const pid = product._id;
     const isRemoving = removingId === pid;
 
@@ -182,10 +183,16 @@ export default function CartScreen({ navigation }) {
                   <Text style={styles.summaryLabel}>Subtotal ({items.length} items)</Text>
                   <Text style={styles.summaryValue}>Rs.{subtotal.toLocaleString()}</Text>
                 </View>
-                <View style={styles.summaryRow}>
+                {gst > 0 && (
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>GST</Text>
+                    <Text style={styles.summaryValue}>Rs.{gst.toLocaleString()}</Text>
+                  </View>
+                )}
+                {/* <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Total boxes</Text>
                   <Text style={styles.summaryValue}>{totalBoxes}</Text>
-                </View>
+                </View> */}
                 {!hasMinimumBoxes ? (
                   <Text style={styles.minimumHint}>
                     Minimum order is {MIN_TOTAL_BOXES} boxes. Add {boxesShort} more.

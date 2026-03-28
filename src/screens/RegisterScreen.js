@@ -22,13 +22,37 @@ export default function RegisterScreen({ navigation }) {
 
   const validate = () => {
     const e = {};
-    if (!form.name) e.name = 'Full name is required';
+    if (!form.name.trim()) e.name = 'Full name is required';
     if (!form.email || !/\S+@\S+\.\S+/.test(form.email)) e.email = 'Valid email required';
-    if (!form.phoneNumber || form.phoneNumber.length < 10) e.phoneNumber = '10-digit phone required';
-    if (!form.password || form.password.length < 6) e.password = 'Min 6 characters';
-    if (!form.city) e.city = 'City is required';
-    if (!form.state) e.state = 'State is required';
-    if (!form.pinCode || form.pinCode.length < 6) e.pinCode = 'Valid pin code required';
+    
+    // Phone: Exactly 10 digits
+    if (!form.phoneNumber || !/^\d{10}$/.test(form.phoneNumber)) {
+      e.phoneNumber = 'Exactly 10 digits required';
+    }
+
+    // Password: Min 6 characters
+    if (!form.password || form.password.length < 6) {
+      e.password = 'Minimum 6 characters';
+    }
+
+    // Pincode: Exactly 6 digits
+    if (!form.pinCode || !/^\d{6}$/.test(form.pinCode)) {
+      e.pinCode = 'Exactly 6 digits required';
+    }
+
+    // GST: Exactly 15 digits alphanumeric (optional in form, but validate if entered)
+    if (form.gstNumber && !/^[A-Z0-9]{15}$/.test(form.gstNumber.toUpperCase())) {
+      e.gstNumber = 'Exactly 15-digit alphanumeric required';
+    }
+
+    // PAN: Exactly 10 digits alphanumeric (optional in form, but validate if entered)
+    if (form.panNumber && !/^[A-Z0-9]{10}$/.test(form.panNumber.toUpperCase())) {
+      e.panNumber = 'Exactly 10-digit alphanumeric required';
+    }
+
+    if (!form.city.trim()) e.city = 'City is required';
+    if (!form.state.trim()) e.state = 'State is required';
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -117,9 +141,11 @@ export default function RegisterScreen({ navigation }) {
             <Input label="Firm / Company Name" placeholder="My Business Pvt Ltd"
               value={form.firmName} onChangeText={set('firmName')} autoCapitalize="words" />
             <Input label="GST Number" placeholder="GSTIN123456789"
-              value={form.gstNumber} onChangeText={set('gstNumber')} autoCapitalize="characters" />
+              value={form.gstNumber} onChangeText={set('gstNumber')} autoCapitalize="characters"
+              error={errors.gstNumber} />
             <Input label="PAN Number" placeholder="ABCDE1234F"
-              value={form.panNumber} onChangeText={set('panNumber')} autoCapitalize="characters" />
+              value={form.panNumber} onChangeText={set('panNumber')} autoCapitalize="characters"
+              error={errors.panNumber} />
             <Input label="Address" placeholder="Street, City, State, PIN"
               value={form.address} onChangeText={set('address')}
               multiline numberOfLines={3} autoCapitalize="sentences" />
@@ -131,7 +157,7 @@ export default function RegisterScreen({ navigation }) {
               autoCapitalize="words" error={errors.state} />
             <Input label="Pin Code" placeholder="380001"
               value={form.pinCode} onChangeText={set('pinCode')}
-              keyboardType="number-pad" error={errors.pinCode} />
+              keyboardType="number-pad" error={errors.pinCode} maxLength={6} />
           </View>
 
           <Button

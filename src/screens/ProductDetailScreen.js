@@ -71,10 +71,10 @@ export default function ProductDetailScreen({ navigation, route }) {
   };
 
   const handleAddToCart = async () => {
-    if (isOutOfStock) {
-      Alert.alert('Out of stock', 'This product is currently unavailable.');
-      return;
-    }
+    // if (isOutOfStock) {
+    //   Alert.alert('Out of stock', 'This product is currently unavailable.');
+    //   return;
+    // }
 
     setAddingCart(true);
     try {
@@ -177,10 +177,9 @@ export default function ProductDetailScreen({ navigation, route }) {
 
       <View style={styles.bottomBar}>
         <Button
-          title={addingCart ? 'Adding...' : isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+          title={addingCart ? 'Adding...' : 'Add to Cart'}
           onPress={handleAddToCart}
           loading={addingCart}
-          disabled={isOutOfStock}
           size="lg"
           style={styles.addButton}
         />

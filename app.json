@@ -11,7 +11,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#f0fdff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.optimapolyplast.water"
@@ -27,7 +29,8 @@
         "android.permission.INTERNET",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -42,6 +45,11 @@
         }
       ]
     ],
-    "extra": {}
+    "extra": {
+      "eas": {
+        "projectId": "c8a0a956-7b5e-4c37-bb4c-46bcefa14b82"
+      }
+    },
+    "owner": "sujal31"
   }
 }

@@ -16,12 +16,26 @@ export const CartProvider = ({ children }) => {
   const fetchCart = async () => {
     try {
       const res = await getCart();
-      // API: { cart: { products: [...], total } }
-      const items = res.data?.cart?.products || [];
+      // New API: { cart: { products: [...], totalItems, amount, gst, totalAmount } }
+      const cart = res.data?.cart;
+      
+      if (!cart) {
+        setCartItems([]);
+        setCartCount(0);
+        return;
+      }
+
+      const items = Array.isArray(cart.products) ? cart.products : [];
       setCartItems(items);
+      // Use unique items count for badge, not total boxes
       setCartCount(items.length);
     } catch (e) {
       console.log('Cart fetch error:', e?.message || String(e));
+      // If unauthorized or not found, clear cart to avoid stale badge
+      if (e?.status === 401 || e?.status === 404) {
+        setCartItems([]);
+        setCartCount(0);
+      }
     }
   };
 

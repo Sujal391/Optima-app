@@ -7,6 +7,7 @@ import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../theme';
 import { Button, Input, Divider, Icon } from '../components/UI';
 import { createOrder } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 
 const MIN_TOTAL_BOXES = 200;
 
@@ -21,8 +22,9 @@ const getShippingAddress = (user) => {
 };
 
 export default function CheckoutScreen({ navigation, route }) {
-  const { items = [], total = 0, subtotal = 0, totalBoxes = 0 } = route.params || {};
+  const { items = [], total = 0, subtotal = 0, totalBoxes = 0, gst = 0 } = route.params || {};
   const { user } = useAuth();
+  const { refreshCart } = useCart();
   const profileAddress = getShippingAddress(user);
   const [address, setAddress] = useState(profileAddress.address);
   const [city, setCity] = useState(profileAddress.city);
@@ -42,16 +44,16 @@ export default function CheckoutScreen({ navigation, route }) {
   const validate = () => {
     const nextErrors = {};
     if (!address.trim() || address.trim().length < 5) {
-      nextErrors.address = 'Please enter a valid address';
+      nextErrors.address = 'Please Enter Full Address.';
     }
     if (!city.trim()) {
-      nextErrors.city = 'Please enter city';
+      nextErrors.city = 'Please Enter City.';
     }
     if (!stateName.trim()) {
-      nextErrors.state = 'Please enter state';
+      nextErrors.state = 'Please Enter State.';
     }
     if (!/^\d{6}$/.test(pinCode.trim())) {
-      nextErrors.pinCode = 'Please enter a valid 6-digit PIN code';
+      nextErrors.pinCode = 'Please Enter Valid 6-Digit PIN Code.';
     }
     if (totalBoxes < MIN_TOTAL_BOXES) {
       nextErrors.totalBoxes = `Minimum ${MIN_TOTAL_BOXES} total boxes required`;
@@ -68,61 +70,82 @@ export default function CheckoutScreen({ navigation, route }) {
       return;
     }
 
-    setLoading(true);
-    try {
-      const payload = {
-        paymentMethod: 'COD',
-        deliveryChoice: 'homeDelivery',
-        shippingAddress: {
-          address: address.trim(),
-          city: city.trim(),
-          state: stateName.trim(),
-          pinCode: pinCode.trim(),
+    Alert.alert(
+      'Payment Mode',
+      'Select how you want to pay for this order.',
+      [
+        {
+          text: 'Cash (COD)',
+          onPress: () => processOrder('COD'),
         },
-        products: items.map((item) => {
-          const product = item.product || item;
-          return {
-            productId: product._id || product.id,
-            boxes: item.boxes || item.quantity || 1,
-          };
-        }),
-      };
+        {
+          text: 'Online',
+          onPress: () => processOrder('online'),
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
 
+  const processOrder = async (method) => {
+    setLoading(true);
+    const payload = {
+      paymentMethod: 'COD', // Always use COD for backend compatibility
+      deliveryChoice: 'homeDelivery',
+      shippingAddress: {
+        address: address.trim(),
+        city: city.trim(),
+        state: stateName.trim(),
+        pinCode: pinCode.trim(),
+      },
+      products: items.map((item) => {
+        const product = item.product || item;
+        return {
+          productId: product._id || product.id,
+          boxes: item.boxes || item.quantity || 1,
+        };
+      }),
+    };
+
+    console.log(`[API Call] createOrder being called for ${method} mode. Payload:`, payload);
+
+    try {
       const res = await createOrder(payload);
       const order = res.data;
+      console.log('[API Success] createOrder called successfully. Order ID:', order?._id || order?.id);
       
-      console.log('CreateOrder response:', order);
-      console.log('Order keys:', Object.keys(order || {}));
-
-      Alert.alert(
-        'Choose Payment Mode',
-        'Select how you want to complete this order.',
-        [
-          {
-            text: 'Cash',
-            onPress: () => {
-              navigation.replace('OrderSuccess', {
-                order,
-                orderId: order?._id || order?.id || order?.orderId,
-                total,
-                itemCount: items?.length || 0,
-                paymentMode: 'Cash',
-              });
-            },
+      refreshCart();
+      
+      if (method === 'online') {
+        navigation.navigate('Payment', {
+          order,
+          total,
+          items,
+          subtotal,
+          totalBoxes,
+          gst,
+          shippingAddress: {
+            address: address.trim(),
+            city: city.trim(),
+            state: stateName.trim(),
+            pinCode: pinCode.trim(),
           },
-          {
-            text: 'Online',
-            onPress: () => {
-              navigation.navigate('Payment', {
-                order,
-                total,
-                items,
-              });
-            },
-          },
-        ]
-      );
+        });
+      } else {
+        navigation.replace('OrderSuccess', {
+          order,
+          orderId: order?._id || order?.id || order?.orderId,
+          total,
+          itemCount: items?.length || 0,
+          paymentMode: 'Cash',
+        });
+      }
     } catch (e) {
+      console.error(`[API Error] createOrder failed for ${method}. Reason:`, e.message || 'Unknown error');
+      console.error('Full Error Object:', e);
       Alert.alert('Order Failed', e.message);
     } finally {
       setLoading(false);
@@ -251,6 +274,12 @@ export default function CheckoutScreen({ navigation, route }) {
             <Text style={styles.billLabel}>Item Total</Text>
             <Text style={styles.billValue}>Rs.{subtotal.toLocaleString()}</Text>
           </View>
+          {gst > 0 && (
+            <View style={styles.billRow}>
+              <Text style={styles.billLabel}>GST</Text>
+              <Text style={styles.billValue}>Rs.{gst.toLocaleString()}</Text>
+            </View>
+          )}
           <Divider style={{ marginVertical: SPACING.md }} />
           <View style={styles.billRow}>
             <Text style={styles.billTotalLabel}>Grand Total</Text>
