@@ -19,6 +19,9 @@
     "production": {
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_USE_ANDROID_SDK_VERSION": "35"
       }
     }
   },
