@@ -43,7 +43,9 @@
           "photosPermission": "The app accesses your photos to let you upload payment screenshots.",
           "cameraPermission": "The app accesses your camera to capture payment screenshots."
         }
-      ]
+      ],
+      "expo-asset",
+      "expo-font"
     ],
     "extra": {
       "eas": {
