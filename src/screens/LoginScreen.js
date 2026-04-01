@@ -29,7 +29,7 @@ export default function LoginScreen({ navigation }) {
     if (!validate()) return;
     setLoading(true);
     try {
-      const res = await login(email.trim().toLowerCase(), password);
+      const res = await login(email.trim(), password);
       // Response: { token, role, userCode }  OR  { token, user: {...} }
       const { token, user, role, userCode } = res.data;
       // Pass role + userCode so AuthContext stores the correct role without hydration
