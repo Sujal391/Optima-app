@@ -149,32 +149,32 @@ export default function CartScreen({ navigation }) {
         <Text style={styles.itemCount}>{items.length} items</Text>
       </View>
 
-      {items.length === 0 ? (
-        <EmptyState
-          icon={<Icon name="shopping-cart" size={52} color={COLORS.burgundy} style={{ marginBottom: SPACING.lg }} />}
-          title="Your cart is empty"
-          subtitle="Browse products and add items to your cart"
-          action="Browse Collection"
-          onAction={() => navigation.navigate('Products')}
-        />
-      ) : (
-        <>
-          <FlatList
-            data={items}
-            keyExtractor={(item) => item.product?._id || String(Math.random())}
-            renderItem={renderItem}
-            contentContainerStyle={styles.listContent}
-            ItemSeparatorComponent={() => <Divider />}
-            showsVerticalScrollIndicator={false}
-            refreshControl={(
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={() => { setRefreshing(true); fetchCart(); }}
-                tintColor={COLORS.burgundy}
-              />
-            )}
+      <FlatList
+        data={items}
+        keyExtractor={(item, index) => item.product?._id || `cart-item-${index}`}
+        renderItem={renderItem}
+        contentContainerStyle={items.length === 0 ? styles.emptyListContent : styles.listContent}
+        ItemSeparatorComponent={() => <Divider />}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={(
+          <EmptyState
+            icon={<Icon name="shopping-cart" size={52} color={COLORS.burgundy} style={{ marginBottom: SPACING.lg }} />}
+            title="Your cart is empty"
+            subtitle="Browse products and add items to your cart"
+            action="Browse Collection"
+            onAction={() => navigation.navigate('Products')}
           />
+        )}
+        refreshControl={(
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); fetchCart(); }}
+            tintColor={COLORS.burgundy}
+          />
+        )}
+      />
 
+      {items.length > 0 ? (
           <View style={styles.checkoutWrap}>
             {summaryOpen ? (
               <View style={styles.summaryAccordion}>
@@ -228,8 +228,7 @@ export default function CartScreen({ navigation }) {
               />
             </View>
           </View>
-        </>
-      )}
+      ) : null}
     </View>
   );
 }
@@ -260,6 +259,7 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.sm, fontFamily: 'DMSans_400Regular', color: COLORS.textMuted,
   },
   listContent: { padding: SPACING.lg, paddingBottom: 130 },
+  emptyListContent: { flexGrow: 1, padding: SPACING.lg },
   cartItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',

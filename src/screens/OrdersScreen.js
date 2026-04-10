@@ -108,31 +108,30 @@ export default function OrdersScreen({ navigation }) {
         <Text style={styles.headerSubtitle}>{orders.length} orders placed</Text>
       </View>
 
-      {orders.length === 0 ? (
-        <EmptyState
-          icon={<Icon name="archive" size={52} color={COLORS.burgundy} style={{ marginBottom: SPACING.lg }} />}
-          title="No orders yet"
-          subtitle="Your order history will appear here"
-          action="Start Shopping"
-          onAction={() => navigation.navigate('Products')}
-        />
-      ) : (
-        <FlatList
-          data={orders}
-          keyExtractor={(item) => item._id || item.id}
-          renderItem={renderOrder}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => <View style={{ height: SPACING.md }} />}
-          refreshControl={(
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => { setRefreshing(true); fetchOrders(); }}
-              tintColor={COLORS.burgundy}
-            />
-          )}
-        />
-      )}
+      <FlatList
+        data={orders}
+        keyExtractor={(item, index) => item._id || item.id || `order-${index}`}
+        renderItem={renderOrder}
+        contentContainerStyle={orders.length === 0 ? styles.emptyListContent : styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ItemSeparatorComponent={() => <View style={{ height: SPACING.md }} />}
+        ListEmptyComponent={(
+          <EmptyState
+            icon={<Icon name="archive" size={52} color={COLORS.burgundy} style={{ marginBottom: SPACING.lg }} />}
+            title="No orders yet"
+            subtitle="Your order history will appear here"
+            action="Start Shopping"
+            onAction={() => navigation.navigate('Products')}
+          />
+        )}
+        refreshControl={(
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); fetchOrders(); }}
+            tintColor={COLORS.burgundy}
+          />
+        )}
+      />
     </View>
   );
 }
@@ -161,6 +160,10 @@ const styles = StyleSheet.create({
   listContent: {
     padding: SPACING.lg,
     paddingBottom: SPACING.xxxl,
+  },
+  emptyListContent: {
+    flexGrow: 1,
+    padding: SPACING.lg,
   },
   orderCard: {
     backgroundColor: COLORS.surface,

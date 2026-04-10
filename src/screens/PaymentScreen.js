@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, Image, KeyboardAvoidingView, Platform, Modal,
+  Alert, Image, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
@@ -71,8 +71,6 @@ export default function PaymentScreen({ navigation, route }) {
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [isTermsAccepted, setIsTermsAccepted] = useState(false);
 
   const handleBackNavigation = (targetStep) => {
     if (targetStep <= 0) {
@@ -112,11 +110,10 @@ export default function PaymentScreen({ navigation, route }) {
 
   const handleContinue = async () => {
     if (!validate()) return;
-    setShowConfirmModal(true);
+    processPayment();
   };
 
   const processPayment = async () => {
-    setShowConfirmModal(false);
     setLoading(true);
     try {
       const currentPaymentId = order?.paymentId || order?.payment?._id;
@@ -299,52 +296,6 @@ export default function PaymentScreen({ navigation, route }) {
           size="lg"
           style={{ marginHorizontal: SPACING.lg, marginBottom: SPACING.xxxl }}
         />
-
-        <Modal
-          visible={showConfirmModal}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowConfirmModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Icon name="info" size={24} color={COLORS.burgundy} />
-                <Text style={styles.modalTitle}>Confirm Order</Text>
-              </View>
-              
-              <Text style={styles.modalMessage}>
-                Please Note: Delivery charges are not included in the total and must be settled directly at the time of delivery.
-              </Text>
-
-              <TouchableOpacity 
-                style={styles.checkboxRow}
-                onPress={() => setIsTermsAccepted(!isTermsAccepted)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.checkbox, isTermsAccepted && styles.checkboxActive]}>
-                  {isTermsAccepted && <Icon name="check" size={14} color="#fff" />}
-                </View>
-                <Text style={styles.checkboxLabel}>I agree to the Terms & Conditions</Text>
-              </TouchableOpacity>
-
-              <View style={styles.modalActions}>
-                <Button 
-                  title="Cancel" 
-                  variant="outline" 
-                  onPress={() => setShowConfirmModal(false)}
-                  style={{ flex: 1 }}
-                />
-                <Button 
-                  title="Confirm" 
-                  onPress={processPayment}
-                  disabled={!isTermsAccepted}
-                  style={{ flex: 1.5 }}
-                />
-              </View>
-            </View>
-          </View>
-        </Modal>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -587,65 +538,5 @@ const styles = StyleSheet.create({
     fontSize: TYPOGRAPHY.base,
     fontFamily: 'DMSans_400Regular',
     color: COLORS.textPrimary,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: SPACING.xl,
-  },
-  modalContent: {
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.xl,
-    padding: SPACING.xl,
-    ...SHADOW.lg,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
-    marginBottom: SPACING.md,
-  },
-  modalTitle: {
-    fontSize: TYPOGRAPHY.lg,
-    fontFamily: 'DMSans_700Bold',
-    color: COLORS.textPrimary,
-  },
-  modalMessage: {
-    fontSize: TYPOGRAPHY.base,
-    fontFamily: 'DMSans_400Regular',
-    color: COLORS.textSecondary,
-    lineHeight: 22,
-    marginBottom: SPACING.lg,
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: SPACING.xl,
-    backgroundColor: COLORS.backgroundDark,
-    padding: SPACING.md,
-    borderRadius: RADIUS.md,
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: COLORS.burgundy,
-    marginRight: SPACING.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxActive: {
-    backgroundColor: COLORS.burgundy,
-  },
-  checkboxLabel: {
-    fontSize: TYPOGRAPHY.sm,
-    fontFamily: 'DMSans_500Medium',
-    color: COLORS.textPrimary,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    gap: SPACING.md,
   },
 });
