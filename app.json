@@ -1,55 +1,61 @@
 {
-  "expo": {
-    "name": "Optima - Premium Water Bottles",
-    "slug": "optima-water",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#f0fdff"
-    },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.optimapolyplast.water"
-    },
-    "android": {
-      "package": "com.optimapolyplast.water",
-      "versionCode": 1,
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#f0fdff"
-      },
-      "permissions": [
-        "android.permission.INTERNET",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
-      ]
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "The app accesses your photos to let you upload payment screenshots.",
-          "cameraPermission": "The app accesses your camera to capture payment screenshots."
-        }
-      ]
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "c8a0a956-7b5e-4c37-bb4c-46bcefa14b82"
-      }
-    },
-    "owner": "sujal31"
+"expo": {
+"name": "Optima - Premium Water Bottles",
+"slug": "optima-water",
+"version": "1.0.0",
+"orientation": "portrait",
+"icon": "./assets/icon.png",
+"userInterfaceStyle": "light",
+
+"splash": {
+  "image": "./assets/splash.png",
+  "resizeMode": "contain",
+  "backgroundColor": "#f0fdff"
+},
+
+"assetBundlePatterns": [
+  "**/*"
+],
+
+"ios": {
+  "supportsTablet": false,
+  "bundleIdentifier": "in.co.optimapolyplast.app"
+},
+
+"android": {
+  "package": "in.co.optimapolyplast.app",
+  "versionCode": 1,
+  "adaptiveIcon": {
+    "foregroundImage": "./assets/adaptive-icon.png",
+    "backgroundColor": "#f0fdff"
+  },
+  "permissions": [
+    "android.permission.CAMERA",
+    "android.permission.READ_MEDIA_IMAGES"
+  ]
+},
+
+"web": {
+  "favicon": "./assets/favicon.png"
+},
+
+"plugins": [
+  [
+    "expo-image-picker",
+    {
+      "photosPermission": "Allow access to your photos to upload payment screenshots.",
+      "cameraPermission": "Allow camera access to capture payment screenshots."
+    }
+  ]
+],
+
+"extra": {
+  "eas": {
+    "projectId": "c8a0a956-7b5e-4c37-bb4c-46bcefa14b82"
   }
+},
+
+"owner": "sujal31"
+
+}
 }
