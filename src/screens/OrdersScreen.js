@@ -89,7 +89,7 @@ export default function OrdersScreen({ navigation }) {
         <View style={styles.orderFooter}>
           <View>
             <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalAmount}>Rs.{item.paymentDetails?.amount?.toLocaleString()}</Text>
+            <Text style={styles.totalAmount}>Rs.{item.totalAmountWithGST?.toLocaleString()}</Text>
           </View>
           <View style={styles.detailsBtn}>
             <Text style={styles.detailsBtnText}>View Details</Text>
