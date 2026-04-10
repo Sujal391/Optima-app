@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  Image, Alert, RefreshControl,
+  Image, Alert, RefreshControl, ScrollView
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
@@ -150,13 +150,24 @@ export default function CartScreen({ navigation }) {
       </View>
 
       {items.length === 0 ? (
-        <EmptyState
-          icon={<Icon name="shopping-cart" size={52} color={COLORS.burgundy} style={{ marginBottom: SPACING.lg }} />}
-          title="Your cart is empty"
-          subtitle="Browse products and add items to your cart"
-          action="Browse Collection"
-          onAction={() => navigation.navigate('Products')}
-        />
+        <ScrollView 
+          contentContainerStyle={{ flex: 1, justifyContent: 'center' }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => { setRefreshing(true); fetchCart(); }}
+              tintColor={COLORS.burgundy}
+            />
+          }
+        >
+          <EmptyState
+            icon={<Icon name="shopping-cart" size={52} color={COLORS.burgundy} style={{ marginBottom: SPACING.lg }} />}
+            title="Your cart is empty"
+            subtitle="Browse products and add items to your cart"
+            action="Browse Collection"
+            onAction={() => navigation.navigate('Products')}
+          />
+        </ScrollView>
       ) : (
         <>
           <FlatList

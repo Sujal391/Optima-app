@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl,
+  View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ScrollView
 } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 import { LoadingSpinner, EmptyState, Divider, Icon } from '../components/UI';
@@ -109,13 +109,24 @@ export default function OrdersScreen({ navigation }) {
       </View>
 
       {orders.length === 0 ? (
-        <EmptyState
-          icon={<Icon name="archive" size={52} color={COLORS.burgundy} style={{ marginBottom: SPACING.lg }} />}
-          title="No orders yet"
-          subtitle="Your order history will appear here"
-          action="Start Shopping"
-          onAction={() => navigation.navigate('Products')}
-        />
+        <ScrollView
+          contentContainerStyle={{ flex: 1, justifyContent: 'center' }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => { setRefreshing(true); fetchOrders(); }}
+              tintColor={COLORS.burgundy}
+            />
+          }
+        >
+          <EmptyState
+            icon={<Icon name="archive" size={52} color={COLORS.burgundy} style={{ marginBottom: SPACING.lg }} />}
+            title="No orders yet"
+            subtitle="Your order history will appear here"
+            action="Start Shopping"
+            onAction={() => navigation.navigate('Products')}
+          />
+        </ScrollView>
       ) : (
         <FlatList
           data={orders}

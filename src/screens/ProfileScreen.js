@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, KeyboardAvoidingView, Platform,
+  Alert, KeyboardAvoidingView, Platform, RefreshControl
 } from 'react-native';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 import { Button, Input, Icon } from '../components/UI';
@@ -19,8 +19,15 @@ export default function ProfileScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [passLoading, setPassLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => { fetchProfile(); }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchProfile();
+    setRefreshing(false);
+  };
 
   const fetchProfile = async () => {
     try {
@@ -148,7 +155,13 @@ export default function ProfileScreen({ navigation }) {
       style={{ flex: 1, backgroundColor: COLORS.background }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACING.xxxl }}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={{ paddingBottom: SPACING.xxxl }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.burgundy} />
+        }
+      >
         <View style={styles.headerBg}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
