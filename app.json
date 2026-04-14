@@ -40,16 +40,16 @@
           "photosPermission": "Allow access to your photos to upload payment screenshots.",
           "cameraPermission": "Allow camera access to capture payment screenshots."
         }
-      ],
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "compileSdkVersion": 35,
-            "targetSdkVersion": 35
-          }
-        }
       ]
+      // [
+      //   "expo-build-properties",
+      //   {
+      //     "android": {
+      //       "compileSdkVersion": 35,
+      //       "targetSdkVersion": 35
+      //     }
+      //   }
+      // ]
     ],
     "extra": {
       "eas": {
