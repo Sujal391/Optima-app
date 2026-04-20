@@ -1,370 +1,91 @@
-# 💧 Optima — Premium Water Bottles App
-### React Native (Expo) — Complete Setup & Play Store Guide
+# 💎 Optima Polyplast
+### Premium E-Commerce Experience for Distribution & Wholesale
+
+[![Expo](https://img.shields.io/badge/Expo-52.0-000020?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev)
+[![React Native](https://img.shields.io/badge/React_Native-0.76-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactnative.dev)
+[![Axios](https://img.shields.io/badge/Axios-1.7-5A29E4?style=for-the-badge&logo=axios&logoColor=white)](https://axios-http.com)
+[![License](https://img.shields.io/badge/License-Private-critical?style=for-the-badge)](https://github.com/)
+
+**Optima Polyplast** is a state-of-the-art mobile application designed for wholesale ordering and supply chain management. Built with a focus on premium aesthetics and high-performance engineering, it provides a seamless bridge between distributors and the central warehouse.
 
 ---
 
-## Project Structure
+## ✨ Key Features
 
-```
-OptimalWaterApp/
-├── App.js                          ← Root: fonts, providers, error boundary
-├── app.json                        ← Expo config (name, package id, permissions)
-├── eas.json                        ← EAS Build config (APK / AAB)
-├── package.json
-├── babel.config.js
-├── assets/
-│   ├── icon.png                    ← App icon (1024×1024 PNG) ← YOU MUST ADD THIS
-│   ├── splash.png                  ← Splash screen (1242×2436 PNG) ← YOU MUST ADD THIS
-│   └── adaptive-icon.png           ← Android adaptive icon (1024×1024)
-└── src/
-    ├── api/
-    │   └── index.js                ← All 13 API endpoints (Axios)
-    ├── components/
-    │   ├── UI.js                   ← Button, Input, Card, Badge, EmptyState, etc.
-    │   ├── ErrorBoundary.js        ← Catches runtime crashes
-    │   └── Toast.js                ← In-app notification system
-    ├── context/
-    │   ├── AuthContext.js          ← JWT token + user state (AsyncStorage)
-    │   └── CartContext.js          ← Global cart item count
-    ├── hooks/
-    │   └── useApi.js               ← useApi() and useMutation() hooks
-    ├── navigation/
-    │   └── AppNavigator.js         ← Auth stack + Bottom tabs + App stack
-    ├── screens/
-    │   ├── LoginScreen.js
-    │   ├── RegisterScreen.js
-    │   ├── HomeScreen.js           ← Banner carousel, categories, deals
-    │   ├── ProductsScreen.js       ← Grid + filters + search
-    │   ├── ProductDetailScreen.js  ← Detail + quantity + add to cart
-    │   ├── CartScreen.js           ← Items + summary + checkout CTA
-    │   ├── CheckoutScreen.js       ← Address + order summary + place order
-    │   ├── PaymentScreen.js        ← Razorpay IDs + screenshot upload
-    │   ├── OrderSuccessScreen.js   ← Animated confirmation
-    │   ├── OrdersScreen.js         ← Order history with status badges
-    │   └── ProfileScreen.js        ← View/edit profile + change password
-    └── theme.js                    ← Colors, typography, spacing, shadows
-```
+- 📱 **Premium UI/UX**: Deep burgundy and gold palette with Glassmorphism effects and modern typography (DM Sans).
+- ⚡ **Turbo Image Loading**: Powered by `expo-image` with persistent disk caching and smooth 300ms transitions.
+- 🔔 **Custom Alerts**: High-end interactive alert provider replacing native system dialogs for a cohesive branded experience.
+- 🛒 **Smart Cart Logic**: Dynamic quantity management with real-time feedback and direct navigation from cart to product details.
+- 🛡️ **Secure Checkout**: Comprehensive order flow supporting partial/online payments with receipt verification.
+- 🚦 **Robust API Handling**: Centralized error interceptors providing user-friendly feedback instead of raw technical errors.
+- 🌑 **Modern Design Tokens**: Fully custom design system with consistent spacing, radius, and shadows.
 
 ---
 
-## PHASE 1 — First Time Setup
+## 🛠️ Technical Stack
 
-### 1. Install Node.js (v18+)
-Download from https://nodejs.org — choose the LTS version.
+- **Core Framework**: React Native (Expo SDK 52)
+- **Navigation**: React Navigation (Native Stack + Bottom Tabs)
+- **Performance**: `expo-image` for hardware-accelerated rendering
+- **Networking**: Axios with centralized error handling and response normalization
+- **State Management**: React Context API (Auth & Cart)
+- **Styling**: Vanilla JavaScript-based design tokens for maximum flexibility
 
-Verify:
-```bash
-node -v   # Should show v18.x or higher
-npm -v
-```
+---
 
-### 2. Install Expo and EAS CLIs globally
-```bash
-npm install -g expo-cli eas-cli
-```
+## 📂 Project Structure
 
-### 3. Create an Expo account
-Go to https://expo.dev → Sign Up (free)
-
-### 4. Open the project folder in VS Code
-```
-File → Open Folder → select MyWineApp
+```text
+src/
+├── api/          # Centralized API logic & Error Interceptors
+├── components/   # Custom UI Library (Alerts, UI primitives, etc.)
+├── context/      # Global State (Authentication, Cart)
+├── navigation/   # Typed Navigation Stacks
+├── screens/      # Feature-specific views
+└── theme.js      # Global Design Tokens (Colors, Typography)
 ```
 
 ---
 
-## PHASE 2 — Install Dependencies
+## 🚀 Quick Start
 
-Run these commands in the VS Code terminal (Terminal → New Terminal):
+### 1. Prerequisites
+- **Node.js** (LTS version)
+- **Expo Go** app (iOS/Android)
+- **EAS CLI** (for cloud builds)
 
-### Install all packages at once:
+### 2. Installation
 ```bash
+# Install dependencies
 npm install
 
-# Then install Expo-managed native packages:
-npx expo install expo-splash-screen expo-image-picker
-npx expo install @expo-google-fonts/playfair-display @expo-google-fonts/dm-sans
-npx expo install react-native-screens react-native-safe-area-context
-npx expo install @react-native-async-storage/async-storage
-```
-
-### If you don't have a package.json yet, install manually:
-```bash
-npm install axios
-npm install @react-navigation/native @react-navigation/native-stack @react-navigation/bottom-tabs
-```
-
----
-
-## PHASE 3 — Configure Your App
-
-### 1. Set your backend URL
-Open `src/api/index.js` and update:
-```js
-// For testing on a physical device connected to same WiFi:
-export const BASE_URL = 'http://YOUR_COMPUTER_IP:5000/api/user';
-// e.g. 'http://192.168.1.10:5000/api/user'
-
-// For Android emulator:
-export const BASE_URL = 'http://10.0.2.2:5000/api/user';
-
-// For production (Play Store):
-export const BASE_URL = 'https://yourapi.yourdomain.com/api/user';
-```
-
-To find your computer's IP on Windows: open Command Prompt → type `ipconfig`
-Look for "IPv4 Address" under your WiFi adapter.
-
-### 2. Update app.json
-Open `app.json` and change:
-- `"name"`: Your app's display name
-- `"slug"`: Unique identifier (lowercase, hyphens only)
-- `"android.package"`: Unique package name like `com.yourname.appname`
-  ⚠️ This CANNOT be changed after Play Store submission!
-- `"ios.bundleIdentifier"`: Same format
-
----
-
-## PHASE 4 — Add App Icons & Splash Screen
-
-You MUST add these image files to the `assets/` folder:
-
-| File | Size | Description |
-|------|------|-------------|
-| `assets/icon.png` | 1024×1024 px | Main app icon (no rounded corners — Android adds them) |
-| `assets/adaptive-icon.png` | 1024×1024 px | Android adaptive icon foreground |
-| `assets/splash.png` | 1242×2436 px | Splash screen image |
-
-**Free tools to create icons:**
-- https://www.appicon.co — generate all sizes from one image
-- https://canva.com — design your icon
-- Keep background color `#6B1A2A` (burgundy) to match splash
-
----
-
-## PHASE 5 — Run the App for Development
-
-### Start development server:
-```bash
-npx expo start
-```
-
-### Test on your phone (easiest method):
-1. Install **Expo Go** app on your Android phone from Play Store
-2. Scan the QR code shown in terminal
-3. App loads live on your phone ✅
-
-### Test on Android emulator (requires Android Studio — optional):
-```bash
-npx expo start --android
-```
-
----
-
-## PHASE 6 — Build for Play Store (No Android Studio needed!)
-
-EAS Build runs on Expo's cloud servers. You just run a command and download the result.
-
-### Step 1: Log in to EAS
-```bash
-eas login
-# Enter your expo.dev credentials
-```
-
-### Step 2: Link your project
-```bash
-eas build:configure
-```
-This updates `app.json` with your EAS project ID automatically.
-
-### Step 3: Build a TEST APK (install directly on phone)
-```bash
-npm run build:preview
-# OR:
-eas build -p android --profile preview
-```
-- Build takes ~10–15 minutes on Expo's servers
-- You'll get a download link for the `.apk` file
-- Download it, transfer to phone, install it (enable "Unknown sources" in settings)
-
-### Step 4: Build PRODUCTION AAB (for Play Store)
-```bash
-npm run build:production
-# OR:
-eas build -p android --profile production
-```
-- Produces a `.aab` (Android App Bundle) file
-- This is what you upload to Google Play Console
-
----
-
-## PHASE 7 — Play Store Submission
-
-### Step 1: Create Google Play Developer account
-- Go to https://play.google.com/console
-- Pay the one-time $25 registration fee
-- Fill in your developer profile
-
-### Step 2: Create a new app
-1. Click "Create app"
-2. Fill in: App name, default language, app type (App), free/paid
-3. Accept policies
-
-### Step 3: Fill in the Store Listing
-Go to "Store presence → Main store listing":
-- **App name**: Your app name
-- **Short description**: Max 80 characters
-- **Full description**: Max 4000 characters
-- **Screenshots**: Required — at least 2 phone screenshots (use your test APK to take them)
-- **Feature graphic**: 1024×500 PNG banner
-- **Icon**: 512×512 PNG
-
-### Step 4: Set up content rating
-- Go to "Policy → App content"
-- Complete the content rating questionnaire
-- Alcohol-related apps must set appropriate age rating
-
-### Step 5: Upload your AAB
-1. Go to "Release → Production → Create new release"
-2. Upload your `.aab` file
-3. Write release notes
-4. Click "Review release"
-
-### Step 6: Submit for review
-- Click "Start rollout to production"
-- First review takes 1–7 days
-- Updates are usually reviewed within hours
-
----
-
-## PHASE 8 — Using Toast Notifications in Screens
-
-The `Toast` system is already set up. Use it in any screen:
-
-```js
-import { useToast } from '../components/Toast';
-
-export default function MyScreen() {
-  const { show } = useToast();
-
-  const handleAction = async () => {
-    try {
-      await someApiCall();
-      show('Done! Item added successfully.', 'success');
-    } catch (e) {
-      show(e.message, 'error');
-    }
-  };
-}
-```
-
-Types: `'success'` | `'error'` | `'warning'` | `'info'`
-
----
-
-## PHASE 9 — Using the useApi Hook
-
-Instead of writing `useState` + `useEffect` + try/catch in every screen, use the hook:
-
-```js
-import { useApi, useMutation } from '../hooks/useApi';
-import { getProducts, addToCart } from '../api';
-
-export default function MyScreen() {
-  // Fetches on mount, gives loading/error/data/refetch
-  const { data: products, loading, error, refetch } = useApi(getProducts, ['wine', 'red']);
-
-  // For actions (POST/DELETE)
-  const { mutate: doAddToCart, loading: addingToCart } = useMutation(addToCart, {
-    onSuccess: () => show('Added to cart!', 'success'),
-    onError: (msg) => show(msg, 'error'),
-  });
-
-  const handleAdd = () => doAddToCart(productId, 1, 1);
-}
-```
-
----
-
-## Common Issues & Fixes
-
-### "Network request failed" on device
-- Your phone and computer must be on the **same WiFi**
-- Use your computer's local IP (not localhost) in `src/api/index.js`
-- Make sure your backend server is running
-
-### Fonts not loading
-```bash
-npx expo install @expo-google-fonts/playfair-display @expo-google-fonts/dm-sans
-```
-
-### Build fails on EAS
-- Run `eas diagnostics` to check your setup
-- Make sure `app.json` has a unique `android.package`
-
-### "Unable to resolve module" error
-```bash
-rm -rf node_modules
-npm install
+# Clear cache and start server
 npx expo start --clear
 ```
 
-### App crashes on launch
-- Check that all images in `assets/` exist
-- Temporarily comment out the `SplashScreen.preventAutoHideAsync()` line to debug
+### 3. Environment Setup
+Create/Configure your `.env` or update `BASE_URL` in `src/api/index.js` to point to your development server's IP.
 
 ---
 
-## Environment: Development vs Production
+## 📦 Deployment (EAS Build)
 
-Create a simple config file at `src/config.js`:
+The project is pre-configured for **Expo Application Services (EAS)**:
 
-```js
-const ENV = {
-  dev: {
-    apiUrl: 'http://192.168.1.10:5000/api/user',
-  },
-  prod: {
-    apiUrl: 'https://yourapi.yourdomain.com/api/user',
-  },
-};
-
-const isDev = __DEV__;
-export default isDev ? ENV.dev : ENV.prod;
-```
-
-Then in `src/api/index.js`:
-```js
-import config from '../config';
-const BASE_URL = config.apiUrl;
-```
+- **Build Preview (APK)**: `eas build -p android --profile preview`
+- **Build Production (AAB)**: `eas build -p android --profile production`
 
 ---
 
-## Checklist Before Play Store Submission
+## 🎨 Design Philosophy
 
-- [ ] `android.package` in app.json is unique and final
-- [ ] `versionCode` is 1 (increment by 1 for each update)
-- [ ] `version` string updated (e.g. "1.0.0")
-- [ ] Backend URL is your production HTTPS URL (not localhost!)
-- [ ] `assets/icon.png` is 1024×1024
-- [ ] `assets/splash.png` exists
-- [ ] App tested on a real Android device
-- [ ] Screenshots taken for Play Store listing
-- [ ] Content rating questionnaire completed
-- [ ] Privacy policy URL provided (required by Google)
+Optima Polyplast follows a **"Luxury Industrial"** aesthetic:
+- **Primary**: Burgundy (`#6B1A2A`) - Representing strength and heritage.
+- **Accent**: Optima Blue (`#2563eb`) - Replacing previous indigo for a professional, reliable touch.
+- **Neutral**: Slate Grays and High-Contrast Blacks for readability.
 
 ---
 
-## Quick Reference: All Commands
-
-| Task | Command |
-|------|---------|
-| Start dev server | `npx expo start` |
-| Clear cache + start | `npx expo start --clear` |
-| Build test APK | `eas build -p android --profile preview` |
-| Build production AAB | `eas build -p android --profile production` |
-| Submit to Play Store | `eas submit -p android --profile production` |
-| Check EAS build status | `eas build:list` |
-| Login to EAS | `eas login` |
-| Reinstall packages | `rm -rf node_modules && npm install` |
+<p align="center">
+  Built for Optima Polyplast Distribution
+</p>
