@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  RefreshControl, Image,
+  RefreshControl,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 import { Icon, EmptyState, LoadingSpinner } from '../components/UI';
@@ -25,7 +26,13 @@ function ActivityCard({ item, onPress }) {
       <View style={styles.cardRow}>
         <View style={styles.cardThumbBox}>
           {thumb ? (
-            <Image source={{ uri: thumb }} style={styles.cardThumb} resizeMode="cover" />
+            <Image 
+              source={thumb} 
+              style={styles.cardThumb} 
+              contentFit="cover" 
+              transition={200}
+              cachePolicy="disk"
+            />
           ) : (
             <View style={styles.cardThumbPlaceholder}>
               <Icon name="map-pin" size={22} color={COLORS.burgundy} />

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, Image, KeyboardAvoidingView, Platform,
+  Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 import { Button, Input, Icon } from '../components/UI';
@@ -141,7 +142,12 @@ export default function AddActivityScreen({ navigation }) {
           <View style={styles.imageGrid}>
             {images.map((img, i) => (
               <View key={i} style={styles.imgBox}>
-                <Image source={{ uri: img.uri }} style={styles.imgPreview} resizeMode="cover" />
+                <Image 
+                  source={img.uri} 
+                  style={styles.imgPreview} 
+                  contentFit="cover" 
+                  transition={200}
+                />
                 <TouchableOpacity style={styles.imgRemove} onPress={() => removeImage(i)}>
                   <Icon name="x" size={12} color="#fff" />
                 </TouchableOpacity>

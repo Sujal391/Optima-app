@@ -6,8 +6,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 
@@ -39,7 +39,7 @@ export const BrandMark = ({ size = 48, style, imageStyle }) => (
         },
         imageStyle,
       ]}
-      resizeMode="contain"
+      contentFit="contain"
     />
   </View>
 );

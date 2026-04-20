@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  Image, Alert, RefreshControl, ScrollView
+  Alert, RefreshControl, ScrollView
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useFocusEffect } from '@react-navigation/native';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 import { Button, Divider, EmptyState, LoadingSpinner, Icon, BrandMark } from '../components/UI';
@@ -103,7 +104,13 @@ export default function CartScreen({ navigation }) {
         >
           <View style={styles.cartImageBox}>
             {product.image ? (
-              <Image source={{ uri: product.image }} style={styles.cartImage} resizeMode="cover" />
+              <Image 
+                source={product.image} 
+                style={styles.cartImage} 
+                contentFit="cover" 
+                transition={200}
+                cachePolicy="disk"
+              />
             ) : (
               <BrandMark size={42} />
             )}

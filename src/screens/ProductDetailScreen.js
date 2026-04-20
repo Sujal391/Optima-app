@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Image,
+  View, Text, StyleSheet, ScrollView,
   TouchableOpacity, Alert, Dimensions, TextInput,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 import { Button, Divider, Icon, BrandMark } from '../components/UI';
 import { addToCart } from '../api';
@@ -105,7 +106,14 @@ export default function ProductDetailScreen({ navigation, route }) {
 
           <View style={styles.heroImageWrap}>
             {product.image ? (
-              <Image source={{ uri: product.image }} style={styles.productImage} resizeMode="contain" />
+              <Image 
+                source={product.image} 
+                style={styles.productImage} 
+                contentFit="contain" 
+                transition={300}
+                cachePolicy="disk"
+                priority="high"
+              />
             ) : (
               <BrandMark size={96} />
             )}

@@ -6,11 +6,11 @@ import {
   FlatList,
   TouchableOpacity,
   TextInput,
-  Image,
   RefreshControl,
   Alert,
   ScrollView,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 import { LoadingSpinner, EmptyState, Icon, BrandMark } from '../components/UI';
 import { getProducts } from '../api';
@@ -100,7 +100,13 @@ export default function ProductsScreen({ navigation }) {
       >
         <View style={styles.productImageBox}>
           {item.image ? (
-            <Image source={{ uri: item.image }} style={styles.productImage} resizeMode="cover" />
+            <Image 
+              source={item.image} 
+              style={styles.productImage} 
+              contentFit="cover" 
+              transition={200}
+              cachePolicy="disk"
+            />
           ) : (
             <BrandMark size={56} />
           )}

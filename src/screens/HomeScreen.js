@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, FlatList,
-  TouchableOpacity, Image, Dimensions, RefreshControl,
+  TouchableOpacity, Dimensions, RefreshControl,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 import { SectionHeader, LoadingSpinner, Icon, BrandMark } from '../components/UI';
 import { getBanners, getProducts } from '../api';
@@ -121,9 +122,11 @@ export default function HomeScreen({ navigation }) {
             renderItem={({ item }) => (
               <View style={styles.bannerCard}>
                 <Image
-                  source={{ uri: item.imageUrl || item.image }}
+                  source={item.imageUrl || item.image}
                   style={styles.bannerImage}
-                  resizeMode="cover"
+                  contentFit="cover"
+                  transition={300}
+                  cachePolicy="none"
                 />
               </View>
             )}
@@ -170,7 +173,13 @@ export default function HomeScreen({ navigation }) {
             >
               <View style={styles.productImageWrap}>
                 {product.image ? (
-                  <Image source={{ uri: product.image }} style={styles.productImage} resizeMode="cover" />
+                  <Image 
+                    source={product.image} 
+                    style={styles.productImage} 
+                    contentFit="cover" 
+                    transition={200}
+                    cachePolicy="disk"
+                  />
                 ) : (
                   <BrandMark size={52} />
                 )}

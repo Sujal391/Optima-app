@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, Image, KeyboardAvoidingView, Platform, Modal,
+  Alert, KeyboardAvoidingView, Platform, Modal,
 } from 'react-native';
+import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 import { Button, Input, Divider, Icon } from '../components/UI';
@@ -181,7 +182,11 @@ export default function PaymentScreen({ navigation, route }) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Scan & Pay</Text>
           <View style={styles.qrCard}>
-            <Image source={require('../../assets/image.png')} style={styles.qrImage} resizeMode="contain" />
+            <Image 
+              source={require('../../assets/image.png')} 
+              style={styles.qrImage} 
+              contentFit="contain" 
+            />
           </View>
         </View>
 
@@ -263,7 +268,12 @@ export default function PaymentScreen({ navigation, route }) {
           >
             {screenshot ? (
               <>
-                <Image source={{ uri: screenshot.uri }} style={styles.uploadPreview} resizeMode="cover" />
+                <Image 
+                  source={screenshot.uri} 
+                  style={styles.uploadPreview} 
+                  contentFit="cover" 
+                  transition={200}
+                />
                 <View style={styles.changeOverlay}>
                   <Text style={styles.changeText}>Tap to change</Text>
                 </View>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Image,
+  View, Text, StyleSheet, ScrollView,
   TouchableOpacity, ActivityIndicator, Dimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 import { Icon } from '../components/UI';
 import { getActivityById } from '../api';
@@ -87,18 +88,22 @@ export default function ActivityDetailScreen({ navigation, route }) {
         {images.length > 0 && (
           <View style={styles.imageSection}>
             <Image
-              source={{ uri: images[activeImg] }}
+              source={images[activeImg]}
               style={styles.mainImage}
-              resizeMode="cover"
+              contentFit="cover"
+              transition={300}
+              cachePolicy="disk"
+              priority="high"
             />
             {images.length > 1 && (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbRow}>
                 {images.map((uri, i) => (
                   <TouchableOpacity key={i} onPress={() => setActiveImg(i)}>
                     <Image
-                      source={{ uri }}
+                      source={uri}
                       style={[styles.thumb, i === activeImg && styles.thumbActive]}
-                      resizeMode="contain"
+                      contentFit="contain"
+                      transition={150}
                     />
                   </TouchableOpacity>
                 ))}
