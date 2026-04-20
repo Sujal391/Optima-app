@@ -7,9 +7,11 @@ import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../theme';
 import { Button, Input, BrandMark, Icon } from '../components/UI';
 import { useAuth } from '../context/AuthContext';
 import { login } from '../api';
+import { useAlert } from '../components/CustomAlert';
 
 export default function LoginScreen({ navigation }) {
   const { signIn } = useAuth();
+  const { alert } = useAlert();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -35,7 +37,7 @@ export default function LoginScreen({ navigation }) {
       // Pass role + userCode so AuthContext stores the correct role without hydration
       await signIn(token, user || { role, userCode });
     } catch (err) {
-      Alert.alert('Login Failed', err.message || 'Invalid credentials');
+      alert('Login Failed', err.message || 'Invalid credentials');
     } finally {
       setLoading(false);
     }

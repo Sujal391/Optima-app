@@ -7,9 +7,11 @@ import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 import { Button, Input, Icon } from '../components/UI';
 import { getProfile, updateProfile, changePassword } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useAlert } from '../components/CustomAlert';
 
 export default function ProfileScreen({ navigation }) {
   const { user, signOut, updateUser } = useAuth();
+  const { alert } = useAlert();
   const [profile, setProfile] = useState(null);
   const [editing, setEditing] = useState(false);
   const [changingPass, setChangingPass] = useState(false);
@@ -102,9 +104,9 @@ export default function ProfileScreen({ navigation }) {
         },
       }));
       setEditing(false);
-      Alert.alert('Saved!', 'Profile updated successfully.');
+      alert('Saved!', 'Profile updated successfully.');
     } catch (e) {
-      Alert.alert('Error', e.message);
+      alert('Error', e.message);
     } finally {
       setLoading(false);
     }
@@ -112,15 +114,15 @@ export default function ProfileScreen({ navigation }) {
 
   const handleChangePassword = async () => {
     if (!passForm.current || !passForm.newPass) {
-      Alert.alert('Error', 'Please fill all password fields.');
+      alert('Error', 'Please fill all password fields.');
       return;
     }
     if (passForm.newPass !== passForm.confirm) {
-      Alert.alert('Error', 'New passwords do not match.');
+      alert('Error', 'New passwords do not match.');
       return;
     }
     if (passForm.newPass.length < 6) {
-      Alert.alert('Error', 'New password must be at least 6 characters.');
+      alert('Error', 'New password must be at least 6 characters.');
       return;
     }
     setPassLoading(true);
@@ -128,13 +130,13 @@ export default function ProfileScreen({ navigation }) {
       await changePassword(passForm.current, passForm.newPass);
       setPassForm({ current: '', newPass: '', confirm: '' });
       setChangingPass(false);
-      Alert.alert('Done!', 'Password changed successfully.');
+      alert('Done!', 'Password changed successfully.');
     } catch (e) {
       const msg = e.message?.toLowerCase();
       if (msg?.includes('wrong') || msg?.includes('incorrect') || msg?.includes('mismatch')) {
-        Alert.alert('Update Failed', 'Current password is incorrect');
+        alert('Update Failed', 'Current password is incorrect');
       } else {
-        Alert.alert('Failed', e.message);
+        alert('Failed', e.message);
       }
     } finally {
       setPassLoading(false);
@@ -142,7 +144,7 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const handleLogout = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+    alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: signOut },
     ]);

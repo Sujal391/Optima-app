@@ -8,11 +8,12 @@ import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 import { Button, Divider, EmptyState, LoadingSpinner, Icon, BrandMark } from '../components/UI';
 import { getCart, removeFromCart } from '../api';
 import { useCart } from '../context/CartContext';
+import { useAlert } from '../components/CustomAlert';
 
-const MIN_TOTAL_BOXES = 200;
 
 export default function CartScreen({ navigation }) {
   const { cartItems, refreshCart } = useCart();
+  const { alert } = useAlert();
   const [cartData, setCartData] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +53,7 @@ export default function CartScreen({ navigation }) {
   };
 
   const handleRemove = async (productId, productName) => {
-    Alert.alert('Remove Item', `Remove ${productName} from cart?`, [
+    alert('Remove Item', `Remove ${productName} from cart?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Remove',
@@ -64,7 +65,7 @@ export default function CartScreen({ navigation }) {
             await fetchCart();
             refreshCart();
           } catch (e) {
-            Alert.alert('Error', e.message);
+            alert('Error', e.message);
           } finally {
             setRemovingId(null);
           }
@@ -78,17 +79,9 @@ export default function CartScreen({ navigation }) {
   const deliveryFee = 0; // Backend handles totals now, keeping it 0 unless specified
   const total = cartData?.totalAmount ?? (subtotal + gst + deliveryFee);
   const totalBoxes = cartData?.totalItems ?? items.reduce((sum, item) => sum + Number(item.boxes || 0), 0);
-  const hasMinimumBoxes = totalBoxes >= MIN_TOTAL_BOXES;
-  const boxesShort = Math.max(MIN_TOTAL_BOXES - totalBoxes, 0);
+  const hasMinimumBoxes = true;
 
   const handleCheckout = () => {
-    if (!hasMinimumBoxes) {
-      Alert.alert(
-        'Minimum order',
-        `Add at least ${boxesShort} more box${boxesShort === 1 ? '' : 'es'} to reach the minimum ${MIN_TOTAL_BOXES} boxes.`
-      );
-      return;
-    }
 
     navigation.navigate('Checkout', { items, total, subtotal, totalBoxes, gst });
   };
@@ -103,29 +96,35 @@ export default function CartScreen({ navigation }) {
 
     return (
       <View style={[styles.cartItem, isRemoving && { opacity: 0.4 }]}>
-        <View style={styles.cartImageBox}>
-          {product.image ? (
-            <Image source={{ uri: product.image }} style={styles.cartImage} resizeMode="cover" />
-          ) : (
-            <BrandMark size={42} />
-          )}
-        </View>
-        <View style={styles.cartItemInfo}>
-          <Text style={styles.itemName} numberOfLines={2}>{product.name}</Text>
-          {product.category ? (
-            <Text style={styles.itemBrand}>{product.category}</Text>
-          ) : null}
-          <View style={styles.itemBottom}>
-            <Text style={styles.itemPrice}>Rs.{price?.toLocaleString()}/box</Text>
-            <View style={styles.itemQty}>
-              <Text style={styles.qtyLabel}>Boxes: </Text>
-              <Text style={styles.qtyValue}>{boxes}</Text>
-            </View>
+        <TouchableOpacity 
+          style={styles.clickableArea} 
+          onPress={() => navigation.navigate('ProductDetail', { product })}
+          activeOpacity={0.7}
+        >
+          <View style={styles.cartImageBox}>
+            {product.image ? (
+              <Image source={{ uri: product.image }} style={styles.cartImage} resizeMode="cover" />
+            ) : (
+              <BrandMark size={42} />
+            )}
           </View>
-          <Text style={styles.itemSubtotal}>
-            Subtotal: Rs.{itemSubtotal?.toLocaleString()}
-          </Text>
-        </View>
+          <View style={styles.cartItemInfo}>
+            <Text style={styles.itemName} numberOfLines={2}>{product.name}</Text>
+            {product.category ? (
+              <Text style={styles.itemBrand}>{product.category}</Text>
+            ) : null}
+            <View style={styles.itemBottom}>
+              <Text style={styles.itemPrice}>Rs.{price?.toLocaleString()}/box</Text>
+              <View style={styles.itemQty}>
+                <Text style={styles.qtyLabel}>Boxes: </Text>
+                <Text style={styles.qtyValue}>{boxes}</Text>
+              </View>
+            </View>
+            <Text style={styles.itemSubtotal}>
+              Subtotal: Rs.{itemSubtotal?.toLocaleString()}
+            </Text>
+          </View>
+        </TouchableOpacity>
         <TouchableOpacity
           style={styles.removeBtn}
           onPress={() => handleRemove(pid, product.name)}
@@ -204,11 +203,6 @@ export default function CartScreen({ navigation }) {
                   <Text style={styles.summaryLabel}>Total boxes</Text>
                   <Text style={styles.summaryValue}>{totalBoxes}</Text>
                 </View> */}
-                {!hasMinimumBoxes ? (
-                  <Text style={styles.minimumHint}>
-                    Minimum order is {MIN_TOTAL_BOXES} boxes. Add {boxesShort} more.
-                  </Text>
-                ) : null}
                 <Divider style={styles.summaryDivider} />
                 <View style={styles.totalRow}>
                   <Text style={styles.totalLabel}>Total</Text>
@@ -233,7 +227,7 @@ export default function CartScreen({ navigation }) {
                 </View>
               </TouchableOpacity>
               <Button
-                title={hasMinimumBoxes ? 'Checkout' : `Min ${MIN_TOTAL_BOXES} Boxes`}
+                title="Checkout"
                 style={styles.checkoutButton}
                 onPress={handleCheckout}
               />
@@ -272,9 +266,14 @@ const styles = StyleSheet.create({
   },
   listContent: { padding: SPACING.lg, paddingBottom: 130 },
   cartItem: {
+    paddingVertical: SPACING.md,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: SPACING.md,
+  },
+  clickableArea: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: SPACING.md,
   },
   cartImageBox: {

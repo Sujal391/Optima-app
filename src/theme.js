@@ -10,10 +10,10 @@ export const COLORS = {
   burgundyDark: '#164e63',    // cyan-900 — top nav / header backgrounds
   burgundyMuted: '#14b8a622', // teal-500 at 13 % opacity
 
-  // Accent — Optima Indigo (indigo-600)
-  gold: '#4f46e5',            // indigo-600 — secondary brand, icons
-  goldLight: '#818cf8',       // indigo-400 — light accent text
-  goldMuted: '#4f46e522',     // indigo at 13 % opacity
+  // Accent — Optima Blue (blue-600)
+  gold: '#2563eb',            // blue-600 — secondary brand, icons
+  goldLight: '#60a5fa',       // blue-400 — light accent text
+  goldMuted: '#2563eb22',     // blue at 13 % opacity
 
   // Neutrals
   cream: '#ecfeff',           // cyan-50

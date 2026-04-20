@@ -62,7 +62,7 @@ export const Button = ({
     },
     secondary: {
       bg: COLORS.gold,
-      text: COLORS.textPrimary,
+      text: COLORS.textInverse,
       border: COLORS.gold,
     },
     outline: {

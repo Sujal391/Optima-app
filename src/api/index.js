@@ -1,27 +1,44 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// ✅ Change this to your deployed server URL before Play Store build
-// For development, you can hardcode it here or set EXPO_PUBLIC_API_URL environment variable
-// Example: EXPO_PUBLIC_API_URL=http://10.0.2.2:5000 (for Android emulator)
-// or: EXPO_PUBLIC_API_URL=http://192.168.1.29:5000 (for physical device - replace IP with your machine IP)
-const API_URL = process.env.EXPO_PUBLIC_API_URL?.trim() || 'http://192.168.1.29:5000'; // Change IP to match your backend server
+const API_URL = process.env.EXPO_PUBLIC_API_URL?.trim() || 'http://192.168.1.29:5000';
 
 export const BASE_URL = API_URL;
 
 console.log('API BASE_URL:', BASE_URL);
 
 const getErrorMessage = (error) => {
-  if (!error) return 'Something went wrong';
+  if (!error) return 'An unexpected error occurred.';
   if (typeof error === 'string') return error;
-  if (error instanceof Error) return error.message;
 
-  return (
-    error?.response?.data?.message ||
-    error?.response?.data?.error ||
-    error?.message ||
-    'Something went wrong'
-  );
+  // 1. Trust server-provided messages first
+  const serverMsg = error?.response?.data?.message || error?.response?.data?.error;
+  if (serverMsg && typeof serverMsg === 'string') return serverMsg;
+
+  // 2. Handle known Axios/Network issues
+  if (error.message === 'Network Error') {
+    return 'Connection failed. Please check your internet and try again.';
+  }
+  if (error.code === 'ECONNABORTED') {
+    return 'The request timed out. Please try again later.';
+  }
+
+  // 3. Fallback to status code based messages if no server message
+  if (error.response) {
+    const status = error.response.status;
+    switch (status) {
+      case 400: return 'Invalid information provided. Please check and try again.';
+      case 401: return 'Your session has expired. Please sign in again.';
+      case 403: return 'Access denied. You do not have permission for this.';
+      case 404: return 'The requested information was not found.';
+      case 422: return 'Could not process some details. Please check your input.';
+      case 500: return 'Internal server error. Our team has been notified.';
+      case 502: case 503: case 504: return 'Server is temporarily unavailable. Please try again in a moment.';
+    }
+    return `Error: ${status} - Something went wrong.`;
+  }
+
+  return error.message || 'Something went wrong. Please try again.';
 };
 
 const api = axios.create({
@@ -33,13 +50,13 @@ const api = axios.create({
 api.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem('token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
-  
+
   // Log FormData requests
   if (config.data instanceof FormData) {
     console.log('FormData request to:', config.url);
     console.log('FormData keys:', Array.from(config.data._parts || []).map(p => p[0]));
   }
-  
+
   return config;
 });
 
@@ -51,7 +68,7 @@ api.interceptors.response.use(
     console.log('API Error - Data:', error?.response?.data);
     console.log('API Error - Message:', error?.message);
     console.log('API Error - Code:', error?.code);
-    
+
     const normalizedError = new Error(getErrorMessage(error));
     normalizedError.status = error?.response?.status;
     normalizedError.data = error?.response?.data;

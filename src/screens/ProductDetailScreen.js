@@ -7,6 +7,7 @@ import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 import { Button, Divider, Icon, BrandMark } from '../components/UI';
 import { addToCart } from '../api';
 import { useCart } from '../context/CartContext';
+import { useAlert } from '../components/CustomAlert';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -29,6 +30,7 @@ function Attribute({ label, value }) {
 export default function ProductDetailScreen({ navigation, route }) {
   const { product } = route.params;
   const { refreshCart } = useCart();
+  const { alert } = useAlert();
   const [boxes, setBoxes] = useState(1);
   const [addingCart, setAddingCart] = useState(false);
   const holdTimeoutRef = useRef(null);
@@ -80,12 +82,12 @@ export default function ProductDetailScreen({ navigation, route }) {
     try {
       await addToCart(product._id || product.id, boxes);
       refreshCart();
-      Alert.alert('Added to Cart', `${boxes} boxes of ${product.name} added successfully.`, [
+      alert('Added to Cart', `${boxes} boxes of ${product.name} added successfully.`, [
         { text: 'Continue Shopping', style: 'cancel' },
         { text: 'View Cart', onPress: () => navigation.navigate('Cart') },
       ]);
     } catch (e) {
-      Alert.alert('Error', e.message);
+      alert('Error', e.message);
     } finally {
       setAddingCart(false);
     }

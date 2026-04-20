@@ -14,6 +14,7 @@ import {
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 import { LoadingSpinner, EmptyState, Icon, BrandMark } from '../components/UI';
 import { getProducts } from '../api';
+import { useAlert } from '../components/CustomAlert';
 
 const SIZE_ORDER = ['200ml', '250ml', '500ml', '700ml', '1L', '2L', '5L', '10L', '20L'];
 
@@ -36,6 +37,7 @@ const formatCategoryLabel = (cat) => {
 };
 
 export default function ProductsScreen({ navigation }) {
+  const { alert } = useAlert();
   const [allProducts, setAllProducts] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [categories, setCategories] = useState(['All']);
@@ -60,7 +62,7 @@ export default function ProductsScreen({ navigation }) {
       setCategories(['All', ...sortCategories(uniqueCats)]);
     } catch (e) {
       console.log('Products error:', e?.message || String(e));
-      Alert.alert('Error', 'Could not load products. Please try again.');
+      alert('Error', 'Could not load products. Please try again.');
     } finally {
       setLoading(false);
       setRefreshing(false);

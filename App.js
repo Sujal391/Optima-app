@@ -15,6 +15,7 @@ import {
 import { AuthProvider } from './src/context/AuthContext';
 import { CartProvider } from './src/context/CartContext';
 import { ToastProvider } from './src/components/Toast';
+import { AlertProvider } from './src/components/CustomAlert';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import AppNavigator from './src/navigation/AppNavigator';
 import { COLORS } from './src/theme';
@@ -76,7 +77,9 @@ export default function App() {
         <AuthProvider>
           <CartProvider>
             <ToastProvider>
-              <AppNavigator />
+              <AlertProvider>
+                <AppNavigator />
+              </AlertProvider>
             </ToastProvider>
           </CartProvider>
         </AuthProvider>

@@ -7,11 +7,13 @@ import * as ImagePicker from 'expo-image-picker';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 import { Button, Input, Icon } from '../components/UI';
 import { addActivity } from '../api';
+import { useAlert } from '../components/CustomAlert';
 
 const VISIT_TYPES = ['on_field', 'virtual', 'office', 'phone'];
 const VISIT_LABELS = { on_field: 'On Field', virtual: 'Virtual', office: 'Office', phone: 'Phone' };
 
 export default function AddActivityScreen({ navigation }) {
+  const { alert } = useAlert();
   const [form, setForm] = useState({
     customerName: '',
     customerMobile: '',
@@ -41,7 +43,7 @@ export default function AddActivityScreen({ navigation }) {
   const pickImages = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Permission Required', 'Please allow access to your photo library.');
+      alert('Permission Required', 'Please allow access to your photo library.');
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -81,11 +83,11 @@ export default function AddActivityScreen({ navigation }) {
       });
 
       await addActivity(formData);
-      Alert.alert('Success', 'Activity logged successfully!', [
+      alert('Success', 'Activity logged successfully!', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (e) {
-      Alert.alert('Failed', e.message || 'Could not log activity. Please try again.');
+      alert('Failed', e.message || 'Could not log activity. Please try again.');
     } finally {
       setLoading(false);
     }

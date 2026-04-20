@@ -7,9 +7,11 @@ import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../theme';
 import { Button, Input, Icon } from '../components/UI';
 import { useAuth } from '../context/AuthContext';
 import { register } from '../api';
+import { useAlert } from '../components/CustomAlert';
 
 export default function RegisterScreen({ navigation }) {
   const { signIn } = useAuth();
+  const { alert } = useAlert();
   const [form, setForm] = useState({
     name: '', email: '', phoneNumber: '',
     firmName: '', gstNumber: '', panNumber: '', address: '', city: '', state: '', pinCode: '', password: '',
@@ -23,8 +25,8 @@ export default function RegisterScreen({ navigation }) {
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = 'Full name is required';
-    if (!form.email || !/\S+@\S+\.\S+/.test(form.email)) e.email = 'Valid email required';
-    
+    if (form.email && !/\S+@\S+\.\S+/.test(form.email)) e.email = 'Valid email required';
+
     // Phone: Exactly 10 digits
     if (!form.phoneNumber || !/^\d{10}$/.test(form.phoneNumber)) {
       e.phoneNumber = 'Exactly 10 digits required';
@@ -50,6 +52,8 @@ export default function RegisterScreen({ navigation }) {
       e.panNumber = 'Exactly 10-digit alphanumeric required';
     }
 
+    // if (!form.firmName.trim()) e.firmName = 'Firm name is required';
+    if (!form.address.trim()) e.address = 'Address is required';
     if (!form.city.trim()) e.city = 'City is required';
     if (!form.state.trim()) e.state = 'State is required';
 
@@ -78,7 +82,7 @@ export default function RegisterScreen({ navigation }) {
       const { token, user, ...authData } = res.data;
       await signIn(token, user || authData);
     } catch (err) {
-      Alert.alert('Registration Failed', err.message);
+      alert('Registration Failed', err.message);
     } finally {
       setLoading(false);
     }
@@ -113,7 +117,7 @@ export default function RegisterScreen({ navigation }) {
 
             <Input label="Full Name" placeholder="John Doe" value={form.name}
               onChangeText={set('name')} autoCapitalize="words" error={errors.name} />
-            <Input label="Email" placeholder="you@example.com" value={form.email}
+            <Input label="Email (Optional)" placeholder="you@example.com" value={form.email}
               onChangeText={set('email')} keyboardType="email-address" error={errors.email} />
             <Input label="Phone Number" placeholder="9876543210" value={form.phoneNumber}
               onChangeText={set('phoneNumber')} keyboardType="phone-pad" error={errors.phoneNumber} />
@@ -135,20 +139,20 @@ export default function RegisterScreen({ navigation }) {
           <View style={styles.section}>
             <View style={styles.sectionLabel}>
               <View style={[styles.sectionDot, { backgroundColor: COLORS.gold }]} />
-              <Text style={styles.sectionLabelText}>Business Info <Text style={styles.optional}>(Optional)</Text></Text>
+              <Text style={styles.sectionLabelText}>Business Info</Text>
             </View>
 
             <Input label="Firm / Company Name" placeholder="My Business Pvt Ltd"
-              value={form.firmName} onChangeText={set('firmName')} autoCapitalize="words" />
-            <Input label="GST Number" placeholder="GSTIN123456789"
+              value={form.firmName} onChangeText={set('firmName')} autoCapitalize="words" error={errors.firmName} />
+            <Input label="GST Number (Optional)" placeholder="GSTIN123456789"
               value={form.gstNumber} onChangeText={set('gstNumber')} autoCapitalize="characters"
               error={errors.gstNumber} />
-            <Input label="PAN Number" placeholder="ABCDE1234F"
+            <Input label="PAN Number (Optional)" placeholder="ABCDE1234F"
               value={form.panNumber} onChangeText={set('panNumber')} autoCapitalize="characters"
               error={errors.panNumber} />
             <Input label="Address" placeholder="Street, City, State, PIN"
               value={form.address} onChangeText={set('address')}
-              multiline numberOfLines={3} autoCapitalize="sentences" />
+              multiline numberOfLines={3} autoCapitalize="sentences" error={errors.address} />
             <Input label="City" placeholder="Ahmedabad"
               value={form.city} onChangeText={set('city')}
               autoCapitalize="words" error={errors.city} />

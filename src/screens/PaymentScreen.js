@@ -8,6 +8,7 @@ import { COLORS, TYPOGRAPHY, SPACING, RADIUS, SHADOW } from '../theme';
 import { Button, Input, Divider, Icon } from '../components/UI';
 import { submitPayment, createOrder } from '../api';
 import { useCart } from '../context/CartContext';
+import { useAlert } from '../components/CustomAlert';
 
 function ProgressHeader({ currentStep, onBack }) {
   const handleStepPress = (stepIndex) => {
@@ -56,6 +57,7 @@ function ProgressHeader({ currentStep, onBack }) {
 export default function PaymentScreen({ navigation, route }) {
   const { order: initialOrder, total, items, subtotal, totalBoxes, gst, shippingAddress } = route.params || {};
   const { refreshCart } = useCart();
+  const { alert } = useAlert();
   const [order, setOrder] = useState(initialOrder);
   const orderId = order?._id || order?.id || order?.orderId || order?.paymentId;
 
@@ -95,7 +97,7 @@ export default function PaymentScreen({ navigation, route }) {
   const pickScreenshot = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Permission Required', 'Please allow access to your photo library.');
+      alert('Permission Required', 'Please allow access to your photo library.');
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -158,7 +160,7 @@ export default function PaymentScreen({ navigation, route }) {
     } catch (e) {
       console.error('[API Error] submitPayment failed. Reason:', e.message || 'Unknown error');
       console.error('Full Error Object:', e);
-      Alert.alert('Payment Failed', e.message || 'Could not submit payment details.');
+      alert('Payment Failed', e.message || 'Could not submit payment details.');
     } finally {
       setLoading(false);
     }

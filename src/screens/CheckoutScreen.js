@@ -8,8 +8,8 @@ import { Button, Input, Divider, Icon } from '../components/UI';
 import { createOrder } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useAlert } from '../components/CustomAlert';
 
-const MIN_TOTAL_BOXES = 200;
 
 const getShippingAddress = (user) => {
   const address = user?.addressObj || user?.customerDetails?.address || {};
@@ -25,6 +25,7 @@ export default function CheckoutScreen({ navigation, route }) {
   const { items = [], total = 0, subtotal = 0, totalBoxes = 0, gst = 0 } = route.params || {};
   const { user } = useAuth();
   const { refreshCart } = useCart();
+  const { alert } = useAlert();
   const profileAddress = getShippingAddress(user);
   const [address, setAddress] = useState(profileAddress.address);
   const [city, setCity] = useState(profileAddress.city);
@@ -55,22 +56,16 @@ export default function CheckoutScreen({ navigation, route }) {
     if (!/^\d{6}$/.test(pinCode.trim())) {
       nextErrors.pinCode = 'Please Enter Valid 6-Digit PIN Code.';
     }
-    if (totalBoxes < MIN_TOTAL_BOXES) {
-      nextErrors.totalBoxes = `Minimum ${MIN_TOTAL_BOXES} total boxes required`;
-    }
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
 
   const handlePlaceOrder = async () => {
     if (!validate()) {
-      if (totalBoxes < MIN_TOTAL_BOXES) {
-        Alert.alert('Minimum order', `You need at least ${MIN_TOTAL_BOXES} total boxes before checkout.`);
-      }
       return;
     }
 
-    Alert.alert(
+    alert(
       'Payment Mode',
       'Select how you want to pay for this order.',
       [
@@ -146,7 +141,7 @@ export default function CheckoutScreen({ navigation, route }) {
     } catch (e) {
       console.error(`[API Error] createOrder failed for ${method}. Reason:`, e.message || 'Unknown error');
       console.error('Full Error Object:', e);
-      Alert.alert('Order Failed', e.message);
+      alert('Order Failed', e.message);
     } finally {
       setLoading(false);
     }
